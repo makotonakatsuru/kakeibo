@@ -883,7 +883,7 @@ async function applyOneFixedItem(item){
     let fixedNote=(item.note?item.note+' ':'')+'🔄';
     let exists=annualData.some(e=>
       e.date===date&&e.type===item.type&&e.category===item.category&&
-      e.amount===item.amount
+      e.amount===item.amount&&e.note&&e.note.includes('🔄')
     );
     if(!exists){
       toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
@@ -927,7 +927,7 @@ async function applyFixedItems(){
       // すでに存在するか確認
       let exists=annualData.some(e=>
         e.date===date&&e.type===item.type&&e.category===item.category&&
-        e.amount===item.amount&&(e.note||null)===(item.note||null)
+        e.amount===item.amount&&e.note&&e.note.includes('🔄')
       );
       if(!exists){
         let fixedNote=(item.note?item.note+' ':'')+'🔄';
