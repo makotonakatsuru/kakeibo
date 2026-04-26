@@ -818,7 +818,7 @@ let fixedType='inc';
 function openFixedModal(){
   // 日付セレクト初期化
   let dayEl=document.getElementById('fixed-day');
-  dayEl.innerHTML=Array.from({length:28},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'日</option>').join('');
+  dayEl.innerHTML=Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'日</option>').join('')+'<option value="99">末日</option>';
   setFixedType('inc');
   // 年月セレクトを初期化
   let now=new Date();
@@ -863,7 +863,7 @@ function renderFixedList(){
     <div style="padding:8px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-          <span style="font-size:12px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">毎月${item.day}日</span>
+          <span style="font-size:12px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.day===99?'毎月末日':'毎月'+item.day+'日'}</span>
           <span style="font-size:14px;font-weight:600;margin-left:6px">${item.category}</span>
           <span style="font-size:13px;color:#888;margin-left:4px">${item.note?item.note.replace('🔄','').trim():''}</span><br>
           <span style="font-size:14px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.type==='inc'?'+':'-'}¥${item.amount.toLocaleString()}</span>
