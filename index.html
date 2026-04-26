@@ -216,7 +216,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <div class="sc"><div class="sl">残高</div><div class="sv b" id="sb">¥0</div></div>
     </div>
     <div class="panel">
-      <div class="ph"><h3>記録を追加</h3></div>
+      <div class="ph" style="display:flex;align-items:center;gap:10px"><h3>記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;color:#E24B4A;display:none"></span></div>
       <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
       <div class="form">
         <div class="formrow">
@@ -283,6 +283,33 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="modal-total">
       <span class="modal-total-label">収支</span>
       <span class="modal-total-val" id="day-modal-total"></span>
+    </div>
+  </div>
+</div>
+<!-- 記録追加モーダル -->
+<div class="modal-overlay" id="add-modal" onclick="closeAddModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="add-modal-title">記録を追加</div>
+      <button class="modal-close" onclick="document.getElementById('add-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div style="margin-bottom:12px">
+        <div style="display:flex;gap:8px">
+          <button id="ib2" onclick="setType2('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
+          <button id="eb2" onclick="setType2('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <select id="cs2" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <input type="number" id="ai2" placeholder="金額を入力（例: 5000）" min="1" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <input type="text" id="note2" list="note-history" placeholder="備考（例：マクドナルド）" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <button onclick="addE2()" id="ab2" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">追加</button>
     </div>
   </div>
 </div>
@@ -720,10 +747,83 @@ function setType(t){
   document.getElementById('cs').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
 }
 
+// 祝日リスト（簡易版・日本の主な祝日）
+const HOLIDAYS={
+  '01-01':true,'01-08':true,'02-11':true,'02-23':true,
+  '03-20':true,'04-29':true,'05-03':true,'05-04':true,'05-05':true,
+  '07-15':true,'08-11':true,'09-16':true,'09-23':true,
+  '10-14':true,'11-03':true,'11-23':true,'12-23':true
+};
+function isHoliday(y,m,d){
+  let key=String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  return !!HOLIDAYS[key];
+}
+function getDayColor(y,m,d){
+  let dow=new Date(y,m,d).getDay();
+  if(dow===0||isHoliday(y,m,d))return '#E24B4A'; // 日・祝=赤
+  if(dow===6)return '#378ADD'; // 土=青
+  return '#222'; // 平日=黒
+}
+
+function openAddModal(key,y,m,d){
+  let isToday=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+  let color=getDayColor(y,m,d);
+  let dateStr=isToday?'今日（'+(m+1)+'月'+d+'日）':(m+1)+'月'+d+'日';
+  document.getElementById('add-modal-title').innerHTML='記録を追加　<span style="font-size:16px;color:'+color+'">'+dateStr+'</span>';
+  document.getElementById('add-modal').classList.add('show');
+}
+function closeAddModal(e){
+  if(e.target===document.getElementById('add-modal'))
+    document.getElementById('add-modal').classList.remove('show');
+}
+let ct2='inc';
+function setType2(t){
+  ct2=t;
+  document.getElementById('ib2').style.background=t==='inc'?'var(--g)':'';
+  document.getElementById('ib2').style.color=t==='inc'?'#fff':'';
+  document.getElementById('eb2').style.background=t==='exp'?'var(--r)':'';
+  document.getElementById('eb2').style.color=t==='exp'?'#fff':'';
+  document.getElementById('cs2').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+async function addE2(){
+  let a=parseInt(document.getElementById('ai2').value);
+  if(!a||a<=0){alert('金額を入力してください');return}
+  let c=document.getElementById('cs2').value;
+  let btn=document.getElementById('ab2');
+  btn.disabled=true;btn.textContent='保存中';ss('spin','保存中...');
+  try{
+    let r=await fetch(SU+'/rest/v1/entries',{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({date:sel,type:ct2,category:c,amount:a,user_id:userId,note:document.getElementById('note2').value.trim()||null})
+    });
+    if(!r.ok)throw new Error((await r.json()).message||r.status);
+    let ne=await r.json();
+    data.push(...ne);annualData.push(...ne);
+    let noteVal=document.getElementById('note2').value.trim();
+    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
+    document.getElementById('ai2').value='';
+    document.getElementById('note2').value='';
+    ss('ok','保存しました');
+    document.getElementById('add-modal').classList.remove('show');
+  }catch(e){ss('err','保存失敗');alert('保存失敗: '+e.message)}
+  btn.disabled=false;btn.textContent='追加';render();
+}
+
 function clickDay(key,y,m,d){
   sel=key;
   updateDateHint();
   render();
+  // 当日以外なら日付ラベルを表示
+  let label=document.getElementById('sel-date-label');
+  let isToday=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+  let color=getDayColor(y,m,d);
+  if(isToday){
+    label.style.display='none';
+  }else{
+    label.textContent=(m+1)+'月'+d+'日';
+    label.style.color=color;
+    label.style.display='inline';
+  }
   // 日付モーダルを表示
   let de=data.filter(e=>e.date===key);
   let title=y+'年'+(m+1)+'月'+d+'日';
@@ -871,7 +971,7 @@ function render(){
       if(dayInc>0){let el=document.createElement('div');el.className='day-inc';el.textContent='+'+fy(dayInc);div.appendChild(el);}
       if(dayExp>0){let el=document.createElement('div');el.className='day-exp';el.textContent='-'+fy(dayExp);div.appendChild(el);}
       let _k=key,_y=cy2,_m=cm,_d=cd;
-      div.onclick=function(){clickDay(_k,_y,_m,_d)};
+      div.onclick=function(){clickDay(_k,_y,_m,_d);openAddModal(_k,_y,_m,_d)};
     }
     g.appendChild(div);
   });
@@ -934,6 +1034,7 @@ tryAutoLogin();
     }
   },{passive:true});
   updateNoteHistory();
+  setType2('inc');
 })();
 </script>
 </body>
