@@ -661,7 +661,7 @@ async function loadAnnual(){
   try{
     let r=await fetch(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(vy+'-*')+'&order=date.asc&user_id=eq.'+userId,{headers:H()});
     if(!r.ok)throw new Error();
-    annualData=await r.json();
+    annualData=dedup(await r.json());
   }catch(e){annualData=[]}
 }
 
@@ -1217,7 +1217,15 @@ async function changeName(){
 }
 
 function showCatDetail(category, type){
-  let filtered=data.filter(e=>e.category===category&&e.type===type);
+  // annualDataから当月分のみ取得してIDで重複除去
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let seen=new Set();
+  let filtered=annualData.filter(e=>{
+    if(e.category!==category||e.type!==type)return false;
+    if(!e.date.startsWith(prefix))return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
   if(!filtered.length)return;
   let total=filtered.reduce((s,e)=>s+e.amount,0);
   let color=type==='inc'?'var(--g)':'var(--r)';
@@ -1459,9 +1467,11 @@ function closeDayModal(e){
 
 function drawPie(canvasId,legendId,type){
   // IDで重複除去してから集計
+  let prefix2=vy+'-'+String(vm+1).padStart(2,'0')+'-';
   let seen=new Set();
-  let filtered=data.filter(e=>{
+  let filtered=annualData.filter(e=>{
     if(e.type!==type)return false;
+    if(!e.date.startsWith(prefix2))return false;
     if(seen.has(e.id))return false;
     seen.add(e.id);return true;
   });
