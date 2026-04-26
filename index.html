@@ -51,13 +51,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 .panel{padding:14px 16px;border-bottom:1px solid var(--border)}
 .ph h3{font-size:15px;font-weight:600;color:#444;margin-bottom:8px}
 .form{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-.formrow{display:flex;gap:8px;align-items:center}
+.formrow{display:flex;gap:10px;align-items:center}
 .tt{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
 .tt button{padding:7px 14px;font-size:13px;border:none;background:none;cursor:pointer;color:#888;font-family:inherit}
 .tt button.ai{background:var(--gl);color:var(--gd);font-weight:600}
 .tt button.ae{background:var(--rl);color:var(--rd);font-weight:600}
-select,input[type=number]{font-size:14px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;flex:1;font-family:inherit}
-.ab{padding:7px 18px;font-size:14px;border:none;border-radius:8px;background:var(--g);color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;font-family:inherit}
+select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;flex:1;font-family:inherit}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}
+.ab{padding:12px 22px;font-size:18px;border:none;border-radius:8px;background:var(--g);color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;font-family:inherit}
 .ab:disabled{opacity:.5}
 .date-hint{font-size:12px;color:#aaa;margin-bottom:8px}
 .date-hint span{color:var(--g);font-weight:600}
@@ -231,7 +231,8 @@ select,input[type=number]{font-size:14px;padding:7px 10px;border:1px solid var(-
           <button class="ab" id="ab" onclick="addE()">追加</button>
         </div>
         <div class="formrow">
-          <input type="text" id="note" placeholder="備考" style="font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
+          <input type="text" id="note" list="note-history" placeholder="備考（例：マクドナルド）" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
+          <datalist id="note-history"></datalist>
         </div>
       </div>
       <div class="elist" id="elist"></div>
@@ -292,9 +293,9 @@ select,input[type=number]{font-size:14px;padding:7px 10px;border:1px solid var(-
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
 const INC=['給与','副業','ボーナス','配当','その他収入'];
-const EXP=['食費','外食','交通費','住居費','水道光熱費','通信費','医療費','娯楽','衣類','日用品','教育','保険','税金','貯蓄','その他支出'];
+const EXP=['食費','外食','交通費','住居費','水道光熱費','通信費','医療費','娯楽','衣類','日用品','教育','保険','税金','貯蓄','投資','その他支出'];
 const INC_COLORS=['#1D9E75','#5DCAA5','#9FE1CB','#0F6E56','#085041','#639922','#97C459'];
-const EXP_COLORS=['#E24B4A','#EF9F27','#D85A30','#D4537E','#7F77DD','#378ADD','#A32D2D','#854F0B','#993556','#534AB7','#185FA5','#712B13','#3C3489','#0C447C','#72243E'];
+const EXP_COLORS=['#E24B4A','#EF9F27','#D85A30','#D4537E','#7F77DD','#378ADD','#A32D2D','#854F0B','#993556','#534AB7','#185FA5','#712B13','#3C3489','#0C447C','#2E7D32','#72243E'];
 
 let ct='inc',today=new Date(),vy=today.getFullYear(),vm=today.getMonth(),sel=null,data=[],annualData=[];
 let accessToken=null,userId=null,userName='';
@@ -490,11 +491,25 @@ async function addE(){
     let ne=await r.json();
     data.push(...ne);
     annualData.push(...ne);
+    let noteVal=document.getElementById('note').value.trim();
+    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
     document.getElementById('ai').value='';
     document.getElementById('note').value='';
     ss('ok','保存しました');
   }catch(e){ss('err','保存失敗');alert('保存失敗: '+e.message)}
   btn.disabled=false;btn.textContent='追加';render();
+}
+
+function updateNoteHistory(){
+  let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');
+  let dl=document.getElementById('note-history');
+  if(!dl)return;
+  dl.innerHTML='';
+  hist.forEach(function(h){
+    let opt=document.createElement('option');
+    opt.value=h;
+    dl.appendChild(opt);
+  });
 }
 
 function toggleSettings(){
@@ -792,6 +807,7 @@ tryAutoLogin();
       load();
     }
   },{passive:true});
+  updateNoteHistory();
 })();
 </script>
 </body>
