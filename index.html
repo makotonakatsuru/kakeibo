@@ -641,13 +641,18 @@ function showApp(){
   load();
 }
 
+function dedup(arr){
+  let seen=new Set();
+  return arr.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+}
+
 async function load(){
   ss('spin','読込中...');
   try{
     let p=vy+'-'+String(vm+1).padStart(2,'0')+'-';
     let r=await fetch(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(p+'*')+'&order=created_at.asc&user_id=eq.'+userId,{headers:H()});
     if(!r.ok)throw new Error();
-    data=await r.json();ss('ok','同期済み');
+    data=dedup(await r.json());ss('ok','同期済み');
   }catch(e){ss('err','エラー')}
   await loadAnnual();render();updateDateHint();
 }
