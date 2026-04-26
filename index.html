@@ -118,7 +118,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .inc-val{color:var(--g)}.exp-val{color:var(--r)}.warn-val{color:#EF9F27;font-weight:600}
 .bal-pos{color:var(--b);font-weight:600}.bal-neg{color:var(--r);font-weight:600}
 .foot{font-size:11px;color:#aaa;text-align:center;padding:12px 16px;border-top:1px solid var(--border)}
-.settings-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0}
+.settings-btn{background:rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
 .settings-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999}
 .settings-overlay.show{display:block}
 .settings-menu{position:absolute;top:56px;right:12px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);overflow:hidden;min-width:180px}
@@ -210,6 +210,16 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <div class="settings-item" onclick="changePassword();closeSettings()">
           <span class="settings-icon">🔑</span>パスワード変更
         </div>
+        <div class="settings-item" onclick="openFixedModal();closeSettings()">
+          <span class="settings-icon">🔄</span>固定費・収入の設定
+        </div>
+        <div class="settings-item" onclick="exportCSV();closeSettings()">
+          <span class="settings-icon">📤</span>CSVエクスポート
+        </div>
+        <div class="settings-item" onclick="document.getElementById('import-file').click();closeSettings()">
+          <span class="settings-icon">📥</span>CSVインポート
+        </div>
+        <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
         <div class="settings-item danger" onclick="doLogout();closeSettings()">
           <span class="settings-icon">🚪</span>ログアウト
         </div>
@@ -288,6 +298,32 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="modal-total">
       <span class="modal-total-label">収支</span>
       <span class="modal-total-val" id="day-modal-total"></span>
+    </div>
+  </div>
+</div>
+<!-- 固定費設定モーダル -->
+<div class="modal-overlay" id="fixed-modal" onclick="closeFixedModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">固定費・収入の設定</div>
+      <button class="modal-close" onclick="document.getElementById('fixed-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="fixed-list" style="margin-bottom:16px"></div>
+      <div style="border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:13px;color:#888;margin-bottom:8px">新しく追加</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button id="fixed-inc-btn" onclick="setFixedType('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
+          <button id="fixed-exp-btn" onclick="setFixedType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+        </div>
+        <select id="fixed-category" style="width:100%;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px"></select>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="number" id="fixed-amount" placeholder="金額" style="flex:1;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px">
+          <select id="fixed-day" style="font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px"></select>
+        </div>
+        <input type="text" id="fixed-note" placeholder="備考（例：給与）" style="width:100%;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;margin-bottom:12px">
+        <button onclick="addFixed()" style="width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">追加</button>
+      </div>
     </div>
   </div>
 </div>
@@ -599,6 +635,156 @@ function updateNoteHistory(){
     opt.value=h;
     dl.appendChild(opt);
   });
+}
+
+// 固定費関連
+let fixedType='inc';
+
+function openFixedModal(){
+  // 日付セレクト初期化
+  let dayEl=document.getElementById('fixed-day');
+  dayEl.innerHTML=Array.from({length:28},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'日</option>').join('');
+  setFixedType('inc');
+  renderFixedList();
+  document.getElementById('fixed-modal').classList.add('show');
+}
+function closeFixedModal(e){
+  if(e.target===document.getElementById('fixed-modal'))
+    document.getElementById('fixed-modal').classList.remove('show');
+}
+function setFixedType(t){
+  fixedType=t;
+  document.getElementById('fixed-inc-btn').style.background=t==='inc'?'var(--g)':'';
+  document.getElementById('fixed-inc-btn').style.color=t==='inc'?'#fff':'';
+  document.getElementById('fixed-exp-btn').style.background=t==='exp'?'var(--r)':'';
+  document.getElementById('fixed-exp-btn').style.color=t==='exp'?'#fff':'';
+  document.getElementById('fixed-category').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+function getFixedItems(){
+  return JSON.parse(localStorage.getItem('fixedItems_'+userId)||'[]');
+}
+function saveFixedItems(items){
+  localStorage.setItem('fixedItems_'+userId,JSON.stringify(items));
+}
+function renderFixedList(){
+  let items=getFixedItems();
+  let el=document.getElementById('fixed-list');
+  if(!items.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:8px">固定費・収入が登録されていません</div>';return;}
+  el.innerHTML=items.map((item,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-size:12px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">毎月${item.day}日</span>
+        <span style="font-size:14px;font-weight:600;margin-left:6px">${item.category}</span>
+        <span style="font-size:13px;color:#888;margin-left:4px">${item.note||''}</span><br>
+        <span style="font-size:14px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.type==='inc'?'+':'-'}¥${item.amount.toLocaleString()}</span>
+      </div>
+      <button onclick="deleteFixed(${i})" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button>
+    </div>`).join('');
+}
+function addFixed(){
+  let amount=parseInt(document.getElementById('fixed-amount').value);
+  let category=document.getElementById('fixed-category').value;
+  let day=parseInt(document.getElementById('fixed-day').value);
+  let note=document.getElementById('fixed-note').value.trim();
+  if(!amount||amount<=0){alert('金額を入力してください');return;}
+  let items=getFixedItems();
+  items.push({type:fixedType,category,amount,day,note:note||null});
+  saveFixedItems(items);
+  document.getElementById('fixed-amount').value='';
+  document.getElementById('fixed-note').value='';
+  renderFixedList();
+}
+function deleteFixed(i){
+  if(!confirm('この固定費・収入を削除しますか？'))return;
+  let items=getFixedItems();
+  items.splice(i,1);
+  saveFixedItems(items);
+  renderFixedList();
+}
+async function applyFixedItems(){
+  let items=getFixedItems();
+  if(!items.length)return;
+  let now=new Date();
+  let y=now.getFullYear(),m=now.getMonth();
+  let toAdd=[];
+  for(let item of items){
+    let d=item.day;
+    let date=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    // 当月分がすでにあるか確認
+    let exists=annualData.some(e=>
+      e.date===date&&e.type===item.type&&e.category===item.category&&
+      e.amount===item.amount&&(e.note||null)===(item.note||null)
+    );
+    if(!exists&&now.getDate()>=d){
+      toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:item.note||null,user_id:userId});
+    }
+  }
+  if(!toAdd.length)return;
+  try{
+    let r=await fetch(SU+'/rest/v1/entries',{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify(toAdd)
+    });
+    if(!r.ok)throw new Error();
+    let ne=await r.json();
+    data.push(...ne);annualData.push(...ne);
+    ss('ok','固定費・収入を'+toAdd.length+'件自動追加しました');
+    render();
+  }catch(e){ss('err','固定費の自動追加に失敗');}
+}
+
+function exportCSV(){
+  // 全データをCSVに変換してダウンロード
+  let rows=[['日付','種別','カテゴリ','金額','備考']];
+  let allData=[...annualData];
+  // 重複除去
+  let seen=new Set();
+  let unique=allData.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+  unique.sort((a,b)=>a.date<b.date?-1:1);
+  unique.forEach(e=>{
+    rows.push([e.date, e.type==='inc'?'収入':'支出', e.category, e.amount, e.note||'']);
+  });
+  let csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  let blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),...[new TextEncoder().encode(csv)]],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='家計簿_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  ss('ok','エクスポートしました');
+}
+
+async function importCSV(event){
+  let file=event.target.files[0];
+  if(!file)return;
+  let text=await file.text();
+  // BOM除去
+  if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  let lines=text.split('\n').filter(l=>l.trim());
+  if(lines.length<2){alert('データがありません');return;}
+  let headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  let imported=0,errors=0;
+  let entries=[];
+  for(let i=1;i<lines.length;i++){
+    let cols=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||[];
+    cols=cols.map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"').trim());
+    let date=cols[0],type=cols[1]==='収入'?'inc':'exp',category=cols[2],amount=parseInt(cols[3]),note=cols[4]||null;
+    if(!date||!category||!amount||isNaN(amount))continue;
+    entries.push({date,type,category,amount,note:note||null,user_id:userId});
+  }
+  if(!entries.length){alert('インポートできるデータがありませんでした');return;}
+  ss('spin','インポート中...');
+  try{
+    let r=await fetch(SU+'/rest/v1/entries',{
+      method:'POST',
+      headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify(entries)
+    });
+    if(!r.ok)throw new Error();
+    imported=entries.length;
+    ss('ok',imported+'件インポートしました');
+    await load();
+  }catch(e){ss('err','インポート失敗');alert('インポートに失敗しました');}
+  event.target.value='';
 }
 
 function toggleSettings(){
@@ -1058,6 +1244,7 @@ tryAutoLogin();
   },{passive:true});
   updateNoteHistory();
   setType2('inc');
+  applyFixedItems();
 })();
 </script>
 </body>
