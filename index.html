@@ -751,8 +751,9 @@ async function addFixed(){
   document.getElementById('fixed-amount').value='';
   document.getElementById('fixed-note').value='';
   renderFixedList();
-  // 追加直後に即座に適用
-  await applyFixedItems();
+  // 追加直後に新しい項目だけ適用
+  let newItem={type:fixedType,category,amount,day,note:note||null,start,end};
+  await applyOneFixedItem(newItem);
   await load();
 }
 async function deleteFixed(i){
@@ -867,6 +868,42 @@ async function editFixed(i){
   // フォームにスクロール
   document.getElementById('fixed-amount').focus();
 }
+async function applyOneFixedItem(item){
+  let now=new Date();
+  let nowY=now.getFullYear();
+  let toAdd=[];
+  let startY,startM,endY,endM;
+  if(item.start){let p=item.start.split('-');startY=parseInt(p[0]);startM=parseInt(p[1])-1;}
+  else{startY=nowY;startM=0;}
+  if(item.end){let p=item.end.split('-');endY=parseInt(p[0]);endM=parseInt(p[1])-1;}
+  else{endY=nowY;endM=11;}
+  let curY=startY,curM=startM;
+  while(curY<endY||(curY===endY&&curM<=endM)){
+    let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(item.day).padStart(2,'0');
+    let fixedNote=(item.note?item.note+' ':'')+'🔄';
+    let exists=annualData.some(e=>
+      e.date===date&&e.type===item.type&&e.category===item.category&&
+      e.amount===item.amount
+    );
+    if(!exists){
+      toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
+    }
+    curM++;if(curM>11){curM=0;curY++;}
+  }
+  if(!toAdd.length)return;
+  try{
+    let r=await fetch(SU+'/rest/v1/entries',{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify(toAdd)
+    });
+    if(!r.ok)throw new Error();
+    let ne=await r.json();
+    data.push(...ne);annualData.push(...ne);
+    ss('ok','固定費・収入を'+toAdd.length+'件追加しました');
+    render();
+  }catch(e){ss('err','固定費の追加に失敗');}
+}
+
 async function applyFixedItems(){
   let items=getFixedItems();
   if(!items.length)return;
