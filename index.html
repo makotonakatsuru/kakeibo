@@ -59,9 +59,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;flex:1;font-family:inherit}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}
 .ab{padding:12px 22px;font-size:18px;border:none;border-radius:8px;background:var(--g);color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;font-family:inherit}
 .ab:disabled{opacity:.5}
-.date-hint{font-size:12px;color:#aaa;margin-bottom:8px}
+.date-hint{display:none}
 .date-hint span{color:var(--g);font-weight:600}
-.elist{display:flex;flex-direction:column;gap:5px}
+.elist{display:none}
 .er{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg2);border-radius:8px}
 .ec{flex:1;font-size:13px;color:#888}
 .ea{font-size:14px;font-weight:600;min-width:80px;text-align:right}
@@ -272,6 +272,20 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="foot">あなただけの家計簿</div>
 </div>
 
+<!-- 日付別記録モーダル -->
+<div class="modal-overlay" id="day-modal" onclick="closeDayModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="day-modal-title"></div>
+      <button class="modal-close" onclick="document.getElementById('day-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" id="day-modal-body"></div>
+    <div class="modal-total">
+      <span class="modal-total-label">収支</span>
+      <span class="modal-total-val" id="day-modal-total"></span>
+    </div>
+  </div>
+</div>
 <!-- 編集モーダル -->
 <div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
   <div class="modal">
@@ -710,6 +724,36 @@ function clickDay(key,y,m,d){
   sel=key;
   updateDateHint();
   render();
+  // 日付モーダルを表示
+  let de=data.filter(e=>e.date===key);
+  let title=y+'年'+(m+1)+'月'+d+'日';
+  document.getElementById('day-modal-title').textContent=title;
+  if(!de.length){
+    document.getElementById('day-modal-body').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">この日の記録はありません</div>';
+    document.getElementById('day-modal-total').textContent='';
+  }else{
+    let inc=de.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
+    let exp=de.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
+    let bal=inc-exp;
+    document.getElementById('day-modal-body').innerHTML=de.map(e=>`
+      <div class="modal-item" onclick="openEditModal('${e.id}');document.getElementById('day-modal').classList.remove('show')" style="cursor:pointer">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:#222">${e.category}</div>
+          <div style="font-size:12px;color:#aaa">${e.note||'備考なし'}</div>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:${e.type==='inc'?'var(--g)':'var(--r)'}">${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
+        <button class="db" onclick="event.stopPropagation();delE('${e.id}');document.getElementById('day-modal').classList.remove('show')">✕</button>
+      </div>`).join('');
+    let balColor=bal>=0?'var(--g)':'var(--r)';
+    document.getElementById('day-modal-total').textContent=(bal>=0?'+':'-')+fy(Math.abs(bal));
+    document.getElementById('day-modal-total').style.color=balColor;
+  }
+  document.getElementById('day-modal').classList.add('show');
+}
+
+function closeDayModal(e){
+  if(e.target===document.getElementById('day-modal'))
+    document.getElementById('day-modal').classList.remove('show');
 }
 
 function drawPie(canvasId,legendId,type){
@@ -846,16 +890,13 @@ function render(){
   let de=data.filter(e=>e.date===sel);
   if(!de.length){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
   list.innerHTML=de.map(e=>`
-  <div class="er">
+  <div class="er" onclick="openEditModal('${e.id}')" style="cursor:pointer">
     <div style="flex:1;overflow:hidden">
       <div class="ec">${e.category}</div>
-      <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
-        <span style="font-size:11px;color:#aaa">${e.note||'備考なし'}</span>
-        <button onclick="openEditModal('${e.id}')" style="font-size:11px;color:#1D9E75;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">✏️編集</button>
-      </div>
+      <span style="font-size:11px;color:#aaa">${e.note||'備考なし'}</span>
     </div>
     <span class="ea ${e.type==='inc'?'i':'e'}">${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
-    <button class="db" onclick="delE('${e.id}')">✕</button>
+    <button class="db" onclick="event.stopPropagation();delE('${e.id}')">✕</button>
   </div>
 `).join('');
 }
