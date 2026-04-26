@@ -679,8 +679,6 @@ async function addE(){
     });
     if(!r.ok)throw new Error((await r.json()).message||r.status);
     let ne=await r.json();
-    data.push(...ne);
-    annualData.push(...ne);
     let noteVal=document.getElementById('note').value.trim();
     if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
     document.getElementById('ai').value='';
@@ -1063,12 +1061,10 @@ async function applyOneFixedItem(item){
         body:JSON.stringify(entry)
       });
       if(!r.ok)continue;
-      let ne=await r.json();
-      data.push(...ne);annualData.push(...ne);
-      added++;
+      if(r.ok)added++;
     }catch(e){}
   }
-  if(added>0){ss('ok','固定費・収入を'+added+'件追加しました');render();}
+  if(added>0){ss('ok','固定費・収入を'+added+'件追加しました');}
 }
 
 async function applyFixedItems(){
@@ -1113,12 +1109,10 @@ async function applyFixedItems(){
         body:JSON.stringify(entry)
       });
       if(!r.ok)continue;
-      let ne=await r.json();
-      data.push(...ne);annualData.push(...ne);
-      added3++;
+      if(r.ok)added3++;
     }catch(e){}
   }
-  if(added3>0){ss('ok','固定費・収入を'+added3+'件自動追加しました');render();}
+  if(added3>0){ss('ok','固定費・収入を'+added3+'件自動追加しました');}
 }
 
 function exportCSV(){
@@ -1299,13 +1293,9 @@ async function saveEdit(){
       body:JSON.stringify({type:editType,category:cat,amount:amt,note:note,date:date})
     });
     if(!r.ok)throw new Error();
-    let idx=data.findIndex(e=>e.id===editingId);
-    if(idx>=0)data[idx]={...data[idx],type:editType,category:cat,amount:amt,note:note,date:date};
-    let aidx=annualData.findIndex(e=>e.id===editingId);
-    if(aidx>=0)annualData[aidx]={...annualData[aidx],type:editType,category:cat,amount:amt,note:note,date:date};
     ss('ok','更新しました');
     document.getElementById('edit-modal').classList.remove('show');
-    render();
+    await load();
   }catch(e){ss('err','更新失敗')}
 }
 
@@ -1396,16 +1386,15 @@ async function addE2(){
       body:JSON.stringify({date:sel,type:ct2,category:c,amount:a,user_id:userId,note:document.getElementById('note2').value.trim()||null})
     });
     if(!r.ok)throw new Error((await r.json()).message||r.status);
-    let ne=await r.json();
-    data.push(...ne);annualData.push(...ne);
     let noteVal=document.getElementById('note2').value.trim();
     if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
     document.getElementById('ai2').value='';
     document.getElementById('note2').value='';
     ss('ok','保存しました');
     document.getElementById('add-modal').classList.remove('show');
+    await load();
   }catch(e){ss('err','保存失敗');alert('保存失敗: '+e.message)}
-  btn.disabled=false;btn.textContent='追加';render();
+  btn.disabled=false;btn.textContent='追加';
 }
 
 function clickDay(key,y,m,d){
