@@ -1097,21 +1097,20 @@ async function applyFixedItems(){
     }
   }
   if(!toAdd.length)return;
-  try{
-    let r=await fetch(SU+'/rest/v1/entries',{
-      method:'POST',headers:{...H(),'Prefer':'return=representation'},
-      body:JSON.stringify(toAdd)
-    });
-    if(!r.ok)throw new Error();
-    let ne=await r.json();
-    data.push(...ne);annualData.push(...ne);
-    // 固定費IDをlocalStorageに保存
-    let fixedIds=JSON.parse(localStorage.getItem('fixedIds_'+userId)||'[]');
-    ne.forEach(e=>fixedIds.push(e.id));
-    localStorage.setItem('fixedIds_'+userId,JSON.stringify(fixedIds));
-    ss('ok','固定費・収入を'+toAdd.length+'件自動追加しました');
-    render();
-  }catch(e){ss('err','固定費の自動追加に失敗');}
+  let added3=0;
+  for(let entry of toAdd){
+    try{
+      let r=await fetch(SU+'/rest/v1/entries',{
+        method:'POST',headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify(entry)
+      });
+      if(!r.ok)continue;
+      let ne=await r.json();
+      data.push(...ne);annualData.push(...ne);
+      added3++;
+    }catch(e){}
+  }
+  if(added3>0){ss('ok','固定費・収入を'+added3+'件自動追加しました');render();}
 }
 
 function exportCSV(){
@@ -1154,17 +1153,18 @@ async function importCSV(event){
   }
   if(!entries.length){alert('インポートできるデータがありませんでした');return;}
   ss('spin','インポート中...');
-  try{
-    let r=await fetch(SU+'/rest/v1/entries',{
-      method:'POST',
-      headers:{...H(),'Prefer':'return=representation'},
-      body:JSON.stringify(entries)
-    });
-    if(!r.ok)throw new Error();
-    imported=entries.length;
-    ss('ok',imported+'件インポートしました');
-    await load();
-  }catch(e){ss('err','インポート失敗');alert('インポートに失敗しました');}
+  for(let entry of entries){
+    try{
+      let r=await fetch(SU+'/rest/v1/entries',{
+        method:'POST',
+        headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify(entry)
+      });
+      if(r.ok)imported++;
+    }catch(e){}
+  }
+  if(imported>0){ss('ok',imported+'件インポートしました');await load();}
+  else{ss('err','インポート失敗');alert('インポートに失敗しました');}
   event.target.value='';
 }
 
