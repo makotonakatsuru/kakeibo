@@ -867,7 +867,11 @@ function renderFixedList(){
           <span style="font-size:14px;font-weight:600;margin-left:6px">${item.category}</span>
           <span style="font-size:13px;color:#888;margin-left:4px">${item.note?item.note.replace('🔄','').trim():''}</span><br>
           <span style="font-size:14px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.type==='inc'?'+':'-'}¥${item.amount.toLocaleString()}</span>
-          <span style="font-size:11px;color:#aaa;margin-left:6px">${item.start||''}${item.end?'〜'+item.end:'〜今年12月'}</span>
+          <span style="font-size:11px;color:#aaa;margin-left:6px">${(()=>{
+          let s=item.start?item.start.replace('-','年')+'月':'';
+          let e=item.end?item.end.replace('-','年')+'月':(new Date().getFullYear()+'年12月');
+          return s+'〜'+e;
+        })()}</span>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="editFixed(${i})" style="background:none;border:1px solid var(--border);border-radius:6px;color:#555;font-size:12px;padding:4px 8px;cursor:pointer">編集</button>
@@ -1043,17 +1047,20 @@ async function applyOneFixedItem(item){
     curM++;if(curM>11){curM=0;curY++;}
   }
   if(!toAdd.length)return;
-  try{
-    let r=await fetch(SU+'/rest/v1/entries',{
-      method:'POST',headers:{...H(),'Prefer':'return=representation'},
-      body:JSON.stringify(toAdd)
-    });
-    if(!r.ok)throw new Error();
-    let ne=await r.json();
-    data.push(...ne);annualData.push(...ne);
-    ss('ok','固定費・収入を'+toAdd.length+'件追加しました');
-    render();
-  }catch(e){ss('err','固定費の追加に失敗');}
+  let added=0;
+  for(let entry of toAdd){
+    try{
+      let r=await fetch(SU+'/rest/v1/entries',{
+        method:'POST',headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify(entry)
+      });
+      if(!r.ok)continue;
+      let ne=await r.json();
+      data.push(...ne);annualData.push(...ne);
+      added++;
+    }catch(e){}
+  }
+  if(added>0){ss('ok','固定費・収入を'+added+'件追加しました');render();}
 }
 
 async function applyFixedItems(){
