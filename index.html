@@ -322,14 +322,18 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <select id="fixed-day" style="font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px"></select>
         </div>
         <input type="text" id="fixed-note" placeholder="備考（例：給与）" style="width:100%;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;margin-bottom:8px">
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-          <div style="flex:1">
-            <div style="font-size:12px;color:#888;margin-bottom:4px">開始年月</div>
-            <input type="month" id="fixed-start" style="width:100%;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:#888;margin-bottom:4px">開始年月</div>
+          <div style="display:flex;gap:6px">
+            <select id="fixed-start-y" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"></select>
+            <select id="fixed-start-m" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"></select>
           </div>
-          <div style="flex:1">
-            <div style="font-size:12px;color:#888;margin-bottom:4px">終了年月（任意）</div>
-            <input type="month" id="fixed-end" style="width:100%;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:#888;margin-bottom:4px">終了年月（任意・空欄で無期限）</div>
+          <div style="display:flex;gap:6px">
+            <select id="fixed-end-y" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"><option value="">なし</option></select>
+            <select id="fixed-end-m" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"><option value="">-</option></select>
           </div>
         </div>
         <button onclick="addFixed()" style="width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">追加</button>
@@ -655,10 +659,20 @@ function openFixedModal(){
   let dayEl=document.getElementById('fixed-day');
   dayEl.innerHTML=Array.from({length:28},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'日</option>').join('');
   setFixedType('inc');
-  // 開始年月を今月に初期化
+  // 年月セレクトを初期化
   let now=new Date();
-  document.getElementById('fixed-start').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  document.getElementById('fixed-end').value='';
+  let cy=now.getFullYear(),cm=now.getMonth()+1;
+  let years=[];
+  for(let y=cy-10;y<=cy+10;y++)years.push(y);
+  let months=Array.from({length:12},(_,i)=>i+1);
+  let syEl=document.getElementById('fixed-start-y');
+  let smEl=document.getElementById('fixed-start-m');
+  let eyEl=document.getElementById('fixed-end-y');
+  let emEl=document.getElementById('fixed-end-m');
+  syEl.innerHTML=years.map(y=>'<option value="'+y+'"'+(y===cy?' selected':'')+'>'+y+'年</option>').join('');
+  smEl.innerHTML=months.map(m=>'<option value="'+m+'"'+(m===cm?' selected':'')+'>'+m+'月</option>').join('');
+  eyEl.innerHTML='<option value="">なし</option>'+years.map(y=>'<option value="'+y+'">'+y+'年</option>').join('');
+  emEl.innerHTML='<option value="">-</option>'+months.map(m=>'<option value="'+m+'">'+m+'月</option>').join('');
   renderFixedList();
   document.getElementById('fixed-modal').classList.add('show');
 }
@@ -701,10 +715,14 @@ function addFixed(){
   let category=document.getElementById('fixed-category').value;
   let day=parseInt(document.getElementById('fixed-day').value);
   let note=document.getElementById('fixed-note').value.trim();
-  let start=document.getElementById('fixed-start').value;
-  let end=document.getElementById('fixed-end').value||null;
+  let sy=document.getElementById('fixed-start-y').value;
+  let sm=document.getElementById('fixed-start-m').value;
+  let ey=document.getElementById('fixed-end-y').value;
+  let em=document.getElementById('fixed-end-m').value;
+  let start=sy&&sm?sy+'-'+String(sm).padStart(2,'0'):null;
+  let end=(ey&&em)?ey+'-'+String(em).padStart(2,'0'):null;
   if(!amount||amount<=0){alert('金額を入力してください');return;}
-  if(!start){alert('開始年月を入力してください');return;}
+  if(!start){alert('開始年月を選択してください');return;}
   let items=getFixedItems();
   items.push({type:fixedType,category,amount,day,note:note||null,start,end});
   saveFixedItems(items);
@@ -737,7 +755,7 @@ async function applyFixedItems(){
       e.amount===item.amount&&(e.note||null)===(item.note||null)
     );
     if(!exists&&now.getDate()>=d){
-      toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:item.note||null,user_id:userId,is_fixed:true});
+      toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:item.note||null,user_id:userId});
     }
   }
   if(!toAdd.length)return;
@@ -749,6 +767,10 @@ async function applyFixedItems(){
     if(!r.ok)throw new Error();
     let ne=await r.json();
     data.push(...ne);annualData.push(...ne);
+    // 固定費IDをlocalStorageに保存
+    let fixedIds=JSON.parse(localStorage.getItem('fixedIds_'+userId)||'[]');
+    ne.forEach(e=>fixedIds.push(e.id));
+    localStorage.setItem('fixedIds_'+userId,JSON.stringify(fixedIds));
     ss('ok','固定費・収入を'+toAdd.length+'件自動追加しました');
     render();
   }catch(e){ss('err','固定費の自動追加に失敗');}
@@ -1055,7 +1077,7 @@ function clickDay(key,y,m,d){
           <div style="font-size:14px;font-weight:600;color:#222">${e.category}</div>
           <div style="font-size:12px;color:#aaa">${e.note||'備考なし'}</div>
         </div>
-        <span style="font-size:14px;font-weight:600;color:${e.type==='inc'?'var(--g)':'var(--r)'}">${e.is_fixed?'🔄 ':''}${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
+        <span style="font-size:14px;font-weight:600;color:${e.type==='inc'?'var(--g)':'var(--r)'}">${(JSON.parse(localStorage.getItem('fixedIds_'+userId)||'[]')).includes(e.id)?'🔄 ':''}${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
         <button class="db" onclick="event.stopPropagation();delE('${e.id}');document.getElementById('day-modal').classList.remove('show')">✕</button>
       </div>`).join('');
     let balColor=bal>=0?'var(--g)':'var(--r)';
