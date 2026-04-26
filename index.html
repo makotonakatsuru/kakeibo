@@ -916,7 +916,9 @@ async function deleteFixed(i){
     let years=Array.from({length:11},(_,i)=>nowY-5+i);
     let months=Array.from({length:12},(_,i)=>i+1);
     box.innerHTML=`
-      <div style="font-size:16px;font-weight:600;margin-bottom:16px">何年何月から削除しますか？</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px">削除方法を選んでください</div>
+      <button id="del-all" style="width:100%;padding:11px;background:#E24B4A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px">全期間を削除</button>
+      <div style="font-size:13px;color:#888;margin-bottom:8px;text-align:center">または特定の月から削除</div>
       <div style="display:flex;gap:8px;margin-bottom:16px">
         <select id="del-from-y" style="flex:1;font-size:15px;padding:8px;border:1px solid #ddd;border-radius:8px">
           ${years.map(y=>'<option value="'+y+'"'+(y===nowY?' selected':'')+'>'+y+'年</option>').join('')}
@@ -927,12 +929,18 @@ async function deleteFixed(i){
       </div>
       <div style="display:flex;gap:8px">
         <button id="del-cancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;cursor:pointer">キャンセル</button>
-        <button id="del-ok" style="flex:1;padding:10px;background:#E24B4A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">削除</button>
+        <button id="del-from-ok" style="flex:1;padding:10px;background:#E24B4A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">この月から削除</button>
       </div>`;
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     document.getElementById('del-cancel').onclick=()=>{document.body.removeChild(overlay);fromY=null;resolve();};
-    document.getElementById('del-ok').onclick=()=>{
+    document.getElementById('del-all').onclick=()=>{
+      // 全期間削除：開始月から
+      if(item.start){let p=item.start.split('-');fromY=parseInt(p[0]);fromM=parseInt(p[1]);}
+      else{fromY=nowY-10;fromM=1;}
+      document.body.removeChild(overlay);resolve();
+    };
+    document.getElementById('del-from-ok').onclick=()=>{
       fromY=parseInt(document.getElementById('del-from-y').value);
       fromM=parseInt(document.getElementById('del-from-m').value);
       document.body.removeChild(overlay);resolve();
