@@ -1468,7 +1468,13 @@ function closeDayModal(e){
 }
 
 function drawPie(canvasId,legendId,type){
-  let filtered=data.filter(e=>e.type===type);
+  // IDで重複除去してから集計
+  let seen=new Set();
+  let filtered=data.filter(e=>{
+    if(e.type!==type)return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
   let totals={};
   filtered.forEach(e=>{totals[e.category]=(totals[e.category]||0)+e.amount});
   let ents=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
@@ -1557,6 +1563,9 @@ function renderAnnual(){
 }
 
 function render(){
+  // 重複除去
+  data=dedup(data);
+  annualData=dedup(annualData);
   let g=document.getElementById('grid');g.innerHTML='';
   document.getElementById('mlbl').textContent=(vm+1)+'月';
   document.getElementById('ylbl').textContent=vy+'年';
