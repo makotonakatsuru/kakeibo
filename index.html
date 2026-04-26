@@ -217,7 +217,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     </div>
     <div class="panel">
       <div class="ph"><h3>記録を追加</h3></div>
-      <div class="date-hint" id="date-hint">↓ カレンダーで日付を選んでください</div>
+      <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
       <div class="form">
         <div class="formrow">
           <div class="tt">
@@ -272,6 +272,41 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="foot">あなただけの家計簿</div>
 </div>
 
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">記録を編集</div>
+      <button class="modal-close" onclick="document.getElementById('edit-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">種別</div>
+        <div style="display:flex;gap:8px">
+          <button id="edit-inc-btn" onclick="setEditType('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">収入</button>
+          <button id="edit-exp-btn" onclick="setEditType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">カテゴリ</div>
+        <select id="edit-category" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">金額</div>
+        <input type="number" id="edit-amount" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">備考</div>
+        <input type="text" id="edit-note" list="note-history" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">日付</div>
+        <input type="date" id="edit-date" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <button onclick="saveEdit()" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">保存</button>
+    </div>
+  </div>
+</div>
 <!-- カテゴリ詳細モーダル -->
 <div class="modal-overlay" id="cat-modal" onclick="closeModal(event)">
   <div class="modal">
@@ -297,7 +332,15 @@ const EXP=['食費','外食','交通費','住居費','水道光熱費','通信�
 const INC_COLORS=['#1D9E75','#5DCAA5','#9FE1CB','#0F6E56','#085041','#639922','#97C459'];
 const EXP_COLORS=['#E24B4A','#EF9F27','#D85A30','#D4537E','#7F77DD','#378ADD','#A32D2D','#854F0B','#993556','#534AB7','#185FA5','#712B13','#3C3489','#0C447C','#2E7D32','#72243E'];
 
-let ct='inc',today=new Date(),vy=today.getFullYear(),vm=today.getMonth(),sel=null,data=[],annualData=[];
+let ct='inc',today=new Date(),vy=today.getFullYear(),vm=today.getMonth();
+let _td=today;
+let sel=_td.getFullYear()+'-'+String(_td.getMonth()+1).padStart(2,'0')+'-'+String(_td.getDate()).padStart(2,'0');
+let data=[],annualData=[];
+function updateDateHint(){
+  if(!sel){document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';return;}
+  let p=sel.split('-');
+  document.getElementById('date-hint').innerHTML='選択中: <span>'+p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日</span>';
+}
 let accessToken=null,userId=null,userName='';
 
 function H(x={}){return{'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+(accessToken||SK),...x}}
@@ -464,7 +507,7 @@ async function load(){
     if(!r.ok)throw new Error();
     data=await r.json();ss('ok','同期済み');
   }catch(e){ss('err','エラー')}
-  await loadAnnual();render();
+  await loadAnnual();render();updateDateHint();
 }
 
 async function loadAnnual(){
@@ -567,12 +610,23 @@ function showCatDetail(category, type){
   document.getElementById('modal-title').textContent=category+'の明細';
   document.getElementById('modal-total').textContent=sign+fy(total);
   document.getElementById('modal-total').style.color=color;
-  document.getElementById('modal-body').innerHTML=filtered.map(e=>{
-    let d=e.date.split('-');
+  // 備考別に集計
+  let noteMap={};
+  let noNote=0;
+  filtered.forEach(e=>{
+    if(e.note&&e.note.trim()){
+      if(!noteMap[e.note])noteMap[e.note]=0;
+      noteMap[e.note]+=e.amount;
+    }else{
+      noNote+=e.amount;
+    }
+  });
+  let entries=Object.entries(noteMap).sort((a,b)=>b[1]-a[1]);
+  if(noNote>0)entries.push(['（備考なし）',noNote]);
+  document.getElementById('modal-body').innerHTML=entries.map(([note,amt])=>{
     return `<div class="modal-item">
-      <span class="modal-date">${d[1]}/${d[2]}</span>
-      <span class="modal-note">${e.note||''}</span>
-      <span class="modal-amt" style="color:${color}">${sign}${fy(e.amount)}</span>
+      <span class="modal-note" style="font-size:14px;color:#222">${note}</span>
+      <span class="modal-amt" style="color:${color}">${sign}${fy(amt)}</span>
     </div>`;
   }).join('');
   document.getElementById('cat-modal').classList.add('show');
@@ -583,22 +637,53 @@ function closeModal(e){
   }
 }
 
-async function editNote(id, currentNote){
-  let newNote=prompt('備考を編集してください', currentNote||'');
-  if(newNote===null)return; // キャンセル
+let editingId=null,editType='exp';
+
+function setEditType(t){
+  editType=t;
+  document.getElementById('edit-inc-btn').style.background=t==='inc'?'var(--g)':'';
+  document.getElementById('edit-inc-btn').style.color=t==='inc'?'#fff':'';
+  document.getElementById('edit-exp-btn').style.background=t==='exp'?'var(--r)':'';
+  document.getElementById('edit-exp-btn').style.color=t==='exp'?'#fff':'';
+  document.getElementById('edit-category').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+
+function openEditModal(id){
+  let e=data.find(e=>e.id===id);
+  if(!e)return;
+  editingId=id;
+  setEditType(e.type);
+  document.getElementById('edit-category').value=e.category;
+  document.getElementById('edit-amount').value=e.amount;
+  document.getElementById('edit-note').value=e.note||'';
+  document.getElementById('edit-date').value=e.date;
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function closeEditModal(ev){
+  if(ev.target===document.getElementById('edit-modal'))
+    document.getElementById('edit-modal').classList.remove('show');
+}
+
+async function saveEdit(){
+  let cat=document.getElementById('edit-category').value;
+  let amt=parseInt(document.getElementById('edit-amount').value);
+  let note=document.getElementById('edit-note').value.trim()||null;
+  let date=document.getElementById('edit-date').value;
+  if(!amt||amt<=0){alert('金額を入力してください');return}
   try{
-    let r=await fetch(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{
+    let r=await fetch(SU+'/rest/v1/entries?id=eq.'+editingId+'&user_id=eq.'+userId,{
       method:'PATCH',
       headers:{...H(),'Prefer':'return=representation'},
-      body:JSON.stringify({note:newNote.trim()||null})
+      body:JSON.stringify({type:editType,category:cat,amount:amt,note:note,date:date})
     });
     if(!r.ok)throw new Error();
-    let updated=await r.json();
-    let idx=data.findIndex(e=>e.id===id);
-    if(idx>=0)data[idx].note=newNote.trim()||null;
-    let aidx=annualData.findIndex(e=>e.id===id);
-    if(aidx>=0)annualData[aidx].note=newNote.trim()||null;
-    ss('ok','備考を更新しました');
+    let idx=data.findIndex(e=>e.id===editingId);
+    if(idx>=0)data[idx]={...data[idx],type:editType,category:cat,amount:amt,note:note,date:date};
+    let aidx=annualData.findIndex(e=>e.id===editingId);
+    if(aidx>=0)annualData[aidx]={...annualData[aidx],type:editType,category:cat,amount:amt,note:note,date:date};
+    ss('ok','更新しました');
+    document.getElementById('edit-modal').classList.remove('show');
     render();
   }catch(e){ss('err','更新失敗')}
 }
@@ -623,7 +708,7 @@ function setType(t){
 
 function clickDay(key,y,m,d){
   sel=key;
-  document.getElementById('date-hint').innerHTML='選択中: <span>'+y+'年'+(m+1)+'月'+d+'日</span>';
+  updateDateHint();
   render();
 }
 
@@ -766,7 +851,7 @@ function render(){
       <div class="ec">${e.category}</div>
       <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
         <span style="font-size:11px;color:#aaa">${e.note||'備考なし'}</span>
-        <button onclick="editNote('${e.id}','${(e.note||'').replace(/'/g,"\'")}')" style="font-size:10px;color:#1D9E75;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">編集</button>
+        <button onclick="openEditModal('${e.id}')" style="font-size:11px;color:#1D9E75;background:none;border:none;cursor:pointer;padding:0;text-decoration:underline">✏️編集</button>
       </div>
     </div>
     <span class="ea ${e.type==='inc'?'i':'e'}">${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
@@ -775,10 +860,10 @@ function render(){
 `).join('');
 }
 
-document.getElementById('prev').onclick=function(){vm--;if(vm<0){vm=11;vy--;}sel=null;document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';load()};
-document.getElementById('next').onclick=function(){vm++;if(vm>11){vm=0;vy++;}sel=null;document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';load()};
-document.getElementById('prev-year').onclick=function(){vy--;sel=null;document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';load()};
-document.getElementById('next-year').onclick=function(){vy++;sel=null;document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';load()};
+document.getElementById('prev').onclick=function(){vm--;if(vm<0){vm=11;vy--;}sel=null;updateDateHint();load()};
+document.getElementById('next').onclick=function(){vm++;if(vm>11){vm=0;vy++;}sel=null;updateDateHint();load()};
+document.getElementById('prev-year').onclick=function(){vy--;sel=null;updateDateHint();load()};
+document.getElementById('next-year').onclick=function(){vy++;sel=null;updateDateHint();load()};
 
 setType('inc');
 tryAutoLogin();
@@ -803,7 +888,7 @@ tryAutoLogin();
         vm--;if(vm<0){vm=11;vy--;}
       }
       sel=null;
-      document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';
+      updateDateHint();
       load();
     }
   },{passive:true});
