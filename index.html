@@ -699,15 +699,20 @@ function renderFixedList(){
   let el=document.getElementById('fixed-list');
   if(!items.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:8px">固定費・収入が登録されていません</div>';return;}
   el.innerHTML=items.map((item,i)=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div>
-        <span style="font-size:12px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">毎月${item.day}日</span>
-        <span style="font-size:14px;font-weight:600;margin-left:6px">${item.category}</span>
-        <span style="font-size:13px;color:#888;margin-left:4px">${item.note||''}</span><br>
-        <span style="font-size:14px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.type==='inc'?'+':'-'}¥${item.amount.toLocaleString()}</span>
-        <span style="font-size:11px;color:#aaa;margin-left:6px">${item.start||''}${item.end?'〜'+item.end:'〜'}</span>
+    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <span style="font-size:12px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">毎月${item.day}日</span>
+          <span style="font-size:14px;font-weight:600;margin-left:6px">${item.category}</span>
+          <span style="font-size:13px;color:#888;margin-left:4px">${item.note?item.note.replace('🔄','').trim():''}</span><br>
+          <span style="font-size:14px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.type==='inc'?'+':'-'}¥${item.amount.toLocaleString()}</span>
+          <span style="font-size:11px;color:#aaa;margin-left:6px">${item.start||''}${item.end?'〜'+item.end:'〜今年12月'}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="editFixed(${i})" style="background:none;border:1px solid var(--border);border-radius:6px;color:#555;font-size:12px;padding:4px 8px;cursor:pointer">編集</button>
+          <button onclick="deleteFixed(${i})" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button>
+        </div>
       </div>
-      <button onclick="deleteFixed(${i})" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button>
     </div>`).join('');
 }
 async function addFixed(){
@@ -733,12 +738,97 @@ async function addFixed(){
   await applyFixedItems();
   await load();
 }
-function deleteFixed(i){
-  if(!confirm('この固定費・収入を削除しますか？'))return;
+async function deleteFixed(i){
   let items=getFixedItems();
+  let item=items[i];
+  // 削除開始月を選択
+  let now=new Date();
+  let nowY=now.getFullYear(),nowM=now.getMonth()+1;
+  let fromY=nowY,fromM=nowM;
+  // 年月選択ダイアログ
+  await new Promise(resolve=>{
+    let overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    let box=document.createElement('div');
+    box.style.cssText='background:#fff;border-radius:16px;padding:20px;width:100%;max-width:320px';
+    let years=Array.from({length:11},(_,i)=>nowY-5+i);
+    let months=Array.from({length:12},(_,i)=>i+1);
+    box.innerHTML=`
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px">何年何月から削除しますか？</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <select id="del-from-y" style="flex:1;font-size:15px;padding:8px;border:1px solid #ddd;border-radius:8px">
+          ${years.map(y=>'<option value="'+y+'"'+(y===nowY?' selected':'')+'>'+y+'年</option>').join('')}
+        </select>
+        <select id="del-from-m" style="flex:1;font-size:15px;padding:8px;border:1px solid #ddd;border-radius:8px">
+          ${months.map(m=>'<option value="'+m+'"'+(m===nowM?' selected':'')+'>'+m+'月</option>').join('')}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="del-cancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;cursor:pointer">キャンセル</button>
+        <button id="del-ok" style="flex:1;padding:10px;background:#E24B4A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">削除</button>
+      </div>`;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    document.getElementById('del-cancel').onclick=()=>{document.body.removeChild(overlay);fromY=null;resolve();};
+    document.getElementById('del-ok').onclick=()=>{
+      fromY=parseInt(document.getElementById('del-from-y').value);
+      fromM=parseInt(document.getElementById('del-from-m').value);
+      document.body.removeChild(overlay);resolve();
+    };
+  });
+  if(!fromY)return;
+
+  // DBからその月以降の該当データを削除
+  ss('spin','削除中...');
+  try{
+    // 対象データを検索して削除
+    let endDate=item.end||(nowY+'-12');
+    let p=endDate.split('-');
+    let endY2=parseInt(p[0]),endM2=parseInt(p[1]);
+    let curY=fromY,curM=fromM-1;
+    while(curY<endY2||(curY===endY2&&curM<=endM2-1)){
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(item.day).padStart(2,'0');
+      await fetch(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      curM++;if(curM>11){curM=0;curY++;}
+    }
+    // 固定費設定の終了月を更新
+    if(fromM===1){
+      items.splice(i,1); // 1月から削除なら設定ごと削除
+    }else{
+      items[i].end=fromY+'-'+String(fromM-1).padStart(2,'0'); // 前月までに終了月を更新
+    }
+    saveFixedItems(items);
+    ss('ok','削除しました');
+    await load();
+    renderFixedList();
+  }catch(e){ss('err','削除失敗');}
+}
+
+function editFixed(i){
+  let items=getFixedItems();
+  let item=items[i];
+  // フォームに値をセット
+  setFixedType(item.type);
+  document.getElementById('fixed-category').value=item.category;
+  document.getElementById('fixed-amount').value=item.amount;
+  document.getElementById('fixed-day').value=item.day;
+  document.getElementById('fixed-note').value=item.note?item.note.replace('🔄','').trim():'';
+  if(item.start){
+    let p=item.start.split('-');
+    document.getElementById('fixed-start-y').value=p[0];
+    document.getElementById('fixed-start-m').value=parseInt(p[1]);
+  }
+  if(item.end){
+    let p=item.end.split('-');
+    document.getElementById('fixed-end-y').value=p[0];
+    document.getElementById('fixed-end-m').value=parseInt(p[1]);
+  }
+  // 既存を削除して編集モードに
   items.splice(i,1);
   saveFixedItems(items);
   renderFixedList();
+  // フォームにスクロール
+  document.getElementById('fixed-amount').focus();
 }
 async function applyFixedItems(){
   let items=getFixedItems();
@@ -978,6 +1068,23 @@ async function saveEdit(){
   }catch(e){ss('err','更新失敗')}
 }
 
+async function delChecked(){
+  let checked=[...document.querySelectorAll('.del-check:checked')].map(el=>el.dataset.id);
+  if(!checked.length){alert('削除する記録を選択してください');return;}
+  if(!confirm(checked.length+'件の記録を削除しますか？'))return;
+  ss('spin','削除中...');
+  try{
+    for(let id of checked){
+      await fetch(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      data=data.filter(e=>e.id!=id);
+      annualData=annualData.filter(e=>e.id!=id);
+    }
+    ss('ok',checked.length+'件削除しました');
+    document.getElementById('day-modal').classList.remove('show');
+    render();
+  }catch(e){ss('err','削除失敗');}
+}
+
 async function delE(id){
   if(!confirm('この記録を削除しますか？'))return;
   ss('spin','削除中...');
@@ -1086,14 +1193,16 @@ function clickDay(key,y,m,d){
     let inc=de.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
     let exp=de.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
     let bal=inc-exp;
-    document.getElementById('day-modal-body').innerHTML=de.map(e=>`
-      <div class="modal-item" onclick="openEditModal('${e.id}');document.getElementById('day-modal').classList.remove('show')" style="cursor:pointer">
-        <div style="flex:1">
+    document.getElementById('day-modal-body').innerHTML=
+      '<div style="padding:8px 0 4px;display:flex;justify-content:flex-end"><button onclick="delChecked()" style="font-size:13px;padding:5px 12px;background:var(--r);color:#fff;border:none;border-radius:8px;cursor:pointer">選択削除</button></div>'+
+      de.map(e=>`
+      <div class="modal-item" style="cursor:pointer">
+        <input type="checkbox" class="del-check" data-id="${e.id}" style="width:18px;height:18px;margin-right:4px;flex-shrink:0" onclick="event.stopPropagation()">
+        <div style="flex:1" onclick="openEditModal('${e.id}');document.getElementById('day-modal').classList.remove('show')">
           <div style="font-size:14px;font-weight:600;color:#222">${e.category}</div>
           <div style="font-size:12px;color:#aaa">${e.note||'備考なし'}</div>
         </div>
-        <span style="font-size:14px;font-weight:600;color:${e.type==='inc'?'var(--g)':'var(--r)'}">${e.note&&e.note.includes('🔄')?'🔄 ':''}${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
-        <button class="db" onclick="event.stopPropagation();delE('${e.id}');document.getElementById('day-modal').classList.remove('show')">✕</button>
+        <span style="font-size:14px;font-weight:600;color:${e.type==='inc'?'var(--g)':'var(--r)'}" onclick="openEditModal('${e.id}');document.getElementById('day-modal').classList.remove('show')">${e.note&&e.note.includes('🔄')?'🔄 ':''}${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
       </div>`).join('');
     let balColor=bal>=0?'var(--g)':'var(--r)';
     document.getElementById('day-modal-total').textContent=(bal>=0?'+':'-')+fy(Math.abs(bal));
