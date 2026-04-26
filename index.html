@@ -735,6 +735,7 @@ async function saveEdit(){
 }
 
 async function delE(id){
+  if(!confirm('この記録を削除しますか？'))return;
   ss('spin','削除中...');
   try{
     let r=await fetch(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
