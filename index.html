@@ -1362,8 +1362,11 @@ function renderAnnual(){
     let md=annualData.filter(e=>e.date.startsWith(prefix));
     let isFuture=m>currentMonth;
     let isCurrent=m===currentMonth&&vy===today.getFullYear();
-    if(isFuture){
-      rows+=`<tr class="future"><td>${m+1}月</td><td>-</td><td>-</td><td>-</td></tr>`;
+    let prefix2=vy+'-'+String(m+1).padStart(2,'0')+'-';
+    let md2=annualData.filter(e=>e.date.startsWith(prefix2));
+    let hasFutureData=md2.length>0;
+    if(isFuture&&!hasFutureData){
+      rows+=`<tr class="future"><td>${m+1}月</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
     }else{
       let mInc=md.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
       let mExp=md.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
