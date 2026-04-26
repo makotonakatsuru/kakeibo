@@ -1035,7 +1035,7 @@ async function applyOneFixedItem(item){
     let fixedNote=(item.note?item.note+' ':'')+'🔄';
     let exists=annualData.some(e=>
       e.date===date&&e.type===item.type&&e.category===item.category&&
-      e.amount===item.amount&&e.note&&e.note.includes('🔄')
+      e.amount===item.amount&&e.note===fixedNote
     );
     if(!exists){
       toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
@@ -1077,13 +1077,13 @@ async function applyFixedItems(){
       let d=item.day;
       let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
       // すでに存在するか確認
+      let fixedNote=(item.note?item.note+' ':'')+'🔄';
       let exists=annualData.some(e=>
         e.date===date&&e.type===item.type&&e.category===item.category&&
-        e.amount===item.amount&&e.note&&e.note.includes('🔄')
+        e.amount===item.amount&&e.note===fixedNote
       );
       if(!exists){
-        let fixedNote=(item.note?item.note+' ':'')+'🔄';
-      toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
+        toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
       }
       curM++;
       if(curM>11){curM=0;curY++;}
