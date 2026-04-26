@@ -210,6 +210,9 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <div class="settings-item" onclick="changePassword();closeSettings()">
           <span class="settings-icon">🔑</span>パスワード変更
         </div>
+        <div class="settings-item" onclick="openBudgetModal();closeSettings()">
+          <span class="settings-icon">🎯</span>月間予算の設定
+        </div>
         <div class="settings-item" onclick="openFixedModal();closeSettings()">
           <span class="settings-icon">🔄</span>固定費・収入の設定
         </div>
@@ -277,6 +280,19 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         </div>
       </div>
     </div>
+    <!-- 予算セクション -->
+    <div class="chart-section" id="budget-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="chart-section-title" style="margin:0">月間予算</div>
+        <button onclick="openBudgetModal()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer">設定</button>
+      </div>
+      <div id="budget-bars"></div>
+    </div>
+    <!-- 月別推移グラフ -->
+    <div class="chart-section">
+      <div class="chart-section-title">月別推移</div>
+      <canvas id="trend-chart" height="160" style="width:100%"></canvas>
+    </div>
     <div class="annual-section">
       <div class="annual-header">
         <div class="annual-title">年間収支</div>
@@ -305,6 +321,19 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
   </div>
 </div>
 <!-- 固定費設定モーダル -->
+<!-- 予算設定モーダル -->
+<div class="modal-overlay" id="budget-modal" onclick="closeBudgetModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">月間予算の設定</div>
+      <button class="modal-close" onclick="document.getElementById('budget-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="budget-inputs"></div>
+      <button onclick="saveBudget()" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px">保存</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="fixed-modal" onclick="closeFixedModal(event)">
   <div class="modal">
     <div class="modal-header">
@@ -654,6 +683,121 @@ async function addE(){
     ss('ok','保存しました');
   }catch(e){ss('err','保存失敗');alert('保存失敗: '+e.message)}
   btn.disabled=false;btn.textContent='追加';render();
+}
+
+// ===== 予算機能 =====
+function getBudget(){
+  return JSON.parse(localStorage.getItem('budget_'+userId)||'{}');
+}
+function saveBudget(){
+  let budget={};
+  EXP.forEach(cat=>{
+    let el=document.getElementById('budget-'+cat);
+    if(el&&el.value)budget[cat]=parseInt(el.value)||0;
+  });
+  localStorage.setItem('budget_'+userId,JSON.stringify(budget));
+  document.getElementById('budget-modal').classList.remove('show');
+  renderBudgetBars();
+}
+function openBudgetModal(){
+  let budget=getBudget();
+  document.getElementById('budget-inputs').innerHTML=EXP.map(cat=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:14px;flex:1">${cat}</span>
+      <input type="number" id="budget-${cat}" value="${budget[cat]||''}" placeholder="未設定"
+        style="width:110px;font-size:14px;padding:7px;border:1px solid var(--border);border-radius:8px;text-align:right">
+      <span style="font-size:13px;color:#888">円</span>
+    </div>`).join('');
+  document.getElementById('budget-modal').classList.add('show');
+}
+function closeBudgetModal(e){
+  if(e.target===document.getElementById('budget-modal'))
+    document.getElementById('budget-modal').classList.remove('show');
+}
+function renderBudgetBars(){
+  let budget=getBudget();
+  let bars=document.getElementById('budget-bars');
+  if(!bars)return;
+  let cats=Object.keys(budget).filter(k=>budget[k]>0);
+  if(!cats.length){bars.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:8px">予算が設定されていません</div>';return;}
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let md=data.filter(e=>e.date.startsWith(prefix)&&e.type==='exp');
+  bars.innerHTML=cats.map(cat=>{
+    let spent=md.filter(e=>e.category===cat).reduce((s,e)=>s+e.amount,0);
+    let bgt=budget[cat];
+    let pct=Math.min(Math.round(spent/bgt*100),100);
+    let color=pct>=100?'var(--r)':pct>=80?'#EF9F27':'var(--g)';
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+        <span>${cat}</span>
+        <span style="color:${color}">${fy(spent)} / ${fy(bgt)}</span>
+      </div>
+      <div style="background:#eee;border-radius:4px;height:8px">
+        <div style="width:${pct}%;background:${color};border-radius:4px;height:8px;transition:width 0.3s"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 月別推移グラフ =====
+let trendChart=null;
+function renderTrendChart(){
+  let canvas=document.getElementById('trend-chart');
+  if(!canvas)return;
+  let ctx=canvas.getContext('2d');
+  let months=Array.from({length:12},(_,i)=>i+1);
+  let incData=months.map(m=>{
+    let prefix=vy+'-'+String(m).padStart(2,'0')+'-';
+    return annualData.filter(e=>e.date.startsWith(prefix)&&e.type==='inc').reduce((s,e)=>s+e.amount,0);
+  });
+  let expData=months.map(m=>{
+    let prefix=vy+'-'+String(m).padStart(2,'0')+'-';
+    return annualData.filter(e=>e.date.startsWith(prefix)&&e.type==='exp').reduce((s,e)=>s+e.amount,0);
+  });
+  let labels=months.map(m=>m+'月');
+  let maxVal=Math.max(...incData,...expData,1);
+  let W=canvas.offsetWidth||320;
+  canvas.width=W*window.devicePixelRatio||W;
+  canvas.height=160*window.devicePixelRatio||160;
+  ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  let w=W,h=160,pad={t:10,r:10,b:30,l:50};
+  let cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  ctx.clearRect(0,0,w,h);
+  // グリッド
+  ctx.strokeStyle='#eee';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    let y=pad.t+ch*(1-i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='10px sans-serif';ctx.textAlign='right';
+    ctx.fillText(fy(Math.round(maxVal*i/4)),pad.l-4,y+4);
+  }
+  // 折れ線
+  [[incData,'#1D9E75'],[expData,'#E24B4A']].forEach(([vals,color])=>{
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    vals.forEach((v,i)=>{
+      let x=pad.l+cw*i/11;
+      let y=pad.t+ch*(1-v/maxVal);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // 点
+    vals.forEach((v,i)=>{
+      if(v===0)return;
+      let x=pad.l+cw*i/11,y=pad.t+ch*(1-v/maxVal);
+      ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    });
+  });
+  // X軸ラベル
+  ctx.fillStyle='#888';ctx.font='10px sans-serif';ctx.textAlign='center';
+  labels.forEach((l,i)=>{
+    let x=pad.l+cw*i/11;
+    ctx.fillText(l,x,h-8);
+  });
+  // 凡例
+  ctx.fillStyle='#1D9E75';ctx.fillRect(pad.l,2,12,8);
+  ctx.fillStyle='#444';ctx.textAlign='left';ctx.fillText('収入',pad.l+14,10);
+  ctx.fillStyle='#E24B4A';ctx.fillRect(pad.l+50,2,12,8);
+  ctx.fillStyle='#444';ctx.fillText('支出',pad.l+64,10);
 }
 
 function updateNoteHistory(){
@@ -1438,6 +1582,8 @@ function render(){
   drawPie('pie-inc','legend-inc','inc');
   drawPie('pie-exp','legend-exp','exp');
   renderAnnual();
+  renderBudgetBars();
+  renderTrendChart();
   let list=document.getElementById('elist');
   if(!sel){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
   let de=data.filter(e=>e.date===sel);
