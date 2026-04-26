@@ -961,7 +961,8 @@ async function deleteFixed(i){
     let endY2=parseInt(p[0]),endM2=parseInt(p[1]);
     let curY=fromY,curM=fromM-1;
     while(curY<endY2||(curY===endY2&&curM<=endM2-1)){
-      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(item.day).padStart(2,'0');
+      let actualDay3=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay3).padStart(2,'0');
       await fetch(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
       curM++;if(curM>11){curM=0;curY++;}
     }
@@ -992,7 +993,8 @@ async function editFixed(i){
     let curY=parseInt(p1[0]),curM=parseInt(p1[1])-1;
     let endY2=parseInt(p2[0]),endM2=parseInt(p2[1])-1;
     while(curY<endY2||(curY===endY2&&curM<=endM2)){
-      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(item.day).padStart(2,'0');
+      let actualDay3=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay3).padStart(2,'0');
       await fetch(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
       curM++;if(curM>11){curM=0;curY++;}
     }
@@ -1035,7 +1037,8 @@ async function applyOneFixedItem(item){
   else{endY=nowY;endM=11;}
   let curY=startY,curM=startM;
   while(curY<endY||(curY===endY&&curM<=endM)){
-    let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(item.day).padStart(2,'0');
+    let actualDay=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
+    let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay).padStart(2,'0');
     let fixedNote=(item.note?item.note+' ':'')+'🔄';
     let exists=annualData.some(e=>
       e.date===date&&e.type===item.type&&e.category===item.category&&
