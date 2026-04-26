@@ -1225,13 +1225,14 @@ function showCatDetail(category, type){
   document.getElementById('modal-title').textContent=category+'の明細';
   document.getElementById('modal-total').textContent=sign+fy(total);
   document.getElementById('modal-total').style.color=color;
-  // 備考別に集計
+  // 備考別に集計（🔄を除いたキーでまとめる）
   let noteMap={};
   let noNote=0;
   filtered.forEach(e=>{
-    if(e.note&&e.note.trim()){
-      if(!noteMap[e.note])noteMap[e.note]=0;
-      noteMap[e.note]+=e.amount;
+    let key=e.note?e.note.replace('🔄','').trim():'';
+    if(key){
+      if(!noteMap[key])noteMap[key]=0;
+      noteMap[key]+=e.amount;
     }else{
       noNote+=e.amount;
     }
