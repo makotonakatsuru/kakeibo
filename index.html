@@ -223,6 +223,9 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <div class="settings-item danger" onclick="doLogout();closeSettings()">
           <span class="settings-icon">🚪</span>ログアウト
         </div>
+        <div class="settings-item danger" onclick="deleteAccount();closeSettings()">
+          <span class="settings-icon">🗑️</span>アカウント削除
+        </div>
       </div>
     </div>
     <div class="sumrow">
@@ -506,6 +509,20 @@ async function doSignup(){
     }
   }catch(e){document.getElementById('auth-err').textContent=e.message}
   btn.disabled=false;btn.textContent='登録する';
+}
+
+async function deleteAccount(){
+  if(!confirm('アカウントを削除しますか？\nすべてのデータが失われます。'))return;
+  if(!confirm('本当に削除しますか？\nこの操作は取り消せません。'))return;
+  ss('spin','削除中...');
+  try{
+    // 全データ削除
+    await fetch(SU+'/rest/v1/entries?user_id=eq.'+userId,{method:'DELETE',headers:H()});
+    // アカウント削除
+    await fetch(SU+'/auth/v1/user',{method:'DELETE',headers:H()});
+    alert('アカウントを削除しました。');
+    await doLogout();
+  }catch(e){ss('err','削除失敗');alert('削除に失敗しました。');}
 }
 
 async function doLogout(){
@@ -804,9 +821,27 @@ async function deleteFixed(i){
   }catch(e){ss('err','削除失敗');}
 }
 
-function editFixed(i){
+async function editFixed(i){
   let items=getFixedItems();
   let item=items[i];
+
+  // 既存のDBデータを削除（開始月〜終了月の全データ）
+  ss('spin','更新中...');
+  try{
+    let now=new Date();
+    let endDate=item.end||(now.getFullYear()+'-12');
+    let p1=item.start?item.start.split('-'):[now.getFullYear().toString(),String(now.getMonth()+1)];
+    let p2=endDate.split('-');
+    let curY=parseInt(p1[0]),curM=parseInt(p1[1])-1;
+    let endY2=parseInt(p2[0]),endM2=parseInt(p2[1])-1;
+    while(curY<endY2||(curY===endY2&&curM<=endM2)){
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(item.day).padStart(2,'0');
+      await fetch(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      curM++;if(curM>11){curM=0;curY++;}
+    }
+    ss('ok','削除完了');
+  }catch(e){ss('err','エラー');}
+
   // フォームに値をセット
   setFixedType(item.type);
   document.getElementById('fixed-category').value=item.category;
@@ -823,10 +858,12 @@ function editFixed(i){
     document.getElementById('fixed-end-y').value=p[0];
     document.getElementById('fixed-end-m').value=parseInt(p[1]);
   }
-  // 既存を削除して編集モードに
+
+  // 既存設定を削除して編集モードに
   items.splice(i,1);
   saveFixedItems(items);
   renderFixedList();
+  await load();
   // フォームにスクロール
   document.getElementById('fixed-amount').focus();
 }
