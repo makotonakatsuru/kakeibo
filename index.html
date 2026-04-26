@@ -753,7 +753,7 @@ async function applyFixedItems(){
     if(item.start){let p=item.start.split('-');startY=parseInt(p[0]);startM=parseInt(p[1])-1;}
     else{startY=nowY;startM=nowM;}
     if(item.end){let p=item.end.split('-');endY=parseInt(p[0]);endM=parseInt(p[1])-1;}
-    else{endY=nowY;endM=nowM;}
+    else{endY=nowY;endM=11;} // 終了未指定は今年の12月まで
 
     // 開始月から終了月まで全月分を登録
     let curY=startY,curM=startM;
