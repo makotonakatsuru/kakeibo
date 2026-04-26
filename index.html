@@ -216,7 +216,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <div class="sc"><div class="sl">残高</div><div class="sv b" id="sb">¥0</div></div>
     </div>
     <div class="panel">
-      <div class="ph" style="display:flex;align-items:center;gap:10px"><h3>記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;color:#E24B4A;display:none"></span></div>
+      <div class="ph" style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;display:none">記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;display:none"></span></div>
       <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
       <div class="form">
         <div class="formrow">
@@ -749,15 +749,16 @@ function setType(t){
 
 // 祝日リスト（簡易版・日本の主な祝日）
 const HOLIDAYS={
-  '01-01':true,'01-08':true,'02-11':true,'02-23':true,
-  '03-20':true,'04-29':true,'05-03':true,'05-04':true,'05-05':true,
-  '07-15':true,'08-11':true,'09-16':true,'09-23':true,
-  '10-14':true,'11-03':true,'11-23':true,'12-23':true
+  '01-01':'元日','01-13':'成人の日','02-11':'建国記念の日','02-23':'天皇誕生日',
+  '03-20':'春分の日','04-29':'昭和の日','05-03':'憲法記念日','05-04':'みどりの日','05-05':'こどもの日',
+  '07-21':'海の日','08-11':'山の日','09-15':'敬老の日','09-23':'秋分の日',
+  '10-13':'スポーツの日','11-03':'文化の日','11-23':'勤労感謝の日'
 };
-function isHoliday(y,m,d){
+function getHolidayName(y,m,d){
   let key=String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-  return !!HOLIDAYS[key];
+  return HOLIDAYS[key]||null;
 }
+function isHoliday(y,m,d){return !!getHolidayName(y,m,d);}
 function getDayColor(y,m,d){
   let dow=new Date(y,m,d).getDay();
   if(dow===0||isHoliday(y,m,d))return '#E24B4A'; // 日・祝=赤
@@ -848,7 +849,17 @@ function clickDay(key,y,m,d){
     document.getElementById('day-modal-total').textContent=(bal>=0?'+':'-')+fy(Math.abs(bal));
     document.getElementById('day-modal-total').style.color=balColor;
   }
-  document.getElementById('day-modal').classList.add('show');
+  // フォームが画面最上部に来るようスクロール（ヘッダー分を引く）
+  let topbar=document.querySelector('.topbar');
+  let topbarH=topbar?topbar.offsetHeight:0;
+  let formEl=document.querySelector('.form');
+  let formTop=formEl.getBoundingClientRect().top+window.scrollY-topbarH-60;
+  window.scrollTo({top:formTop,behavior:'smooth'});
+  // 記録がある日はポップアップも表示
+  let de2=data.filter(e=>e.date===key);
+  if(de2.length>0){
+    setTimeout(function(){document.getElementById('day-modal').classList.add('show');},300);
+  }
 }
 
 function closeDayModal(e){
@@ -962,8 +973,14 @@ function render(){
     let isTod=cy2===today.getFullYear()&&cm===today.getMonth()&&cd===today.getDate();
     div.className='cell'+(c.cur?'':' other')+(isTod?' today':'')+(key===sel?' sel':'');
     let dn=document.createElement('div');
-    dn.className='cn'+(dow===0?' sun':dow===6?' sat':'')+(isTod?' tod':'');
+    let hname=getHolidayName(cy2,cm,cd);
+    dn.className='cn'+(dow===0||hname?' sun':dow===6?' sat':'')+(isTod?' tod':'');
     dn.textContent=cd;div.appendChild(dn);
+    if(hname){
+      let hl=document.createElement('div');
+      hl.style.cssText='font-size:7px;color:var(--r);line-height:1.1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px';
+      hl.textContent=hname;div.appendChild(hl);
+    }
     if(c.cur){
       let de=data.filter(e=>e.date===key);
       let dayInc=de.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
@@ -971,7 +988,7 @@ function render(){
       if(dayInc>0){let el=document.createElement('div');el.className='day-inc';el.textContent='+'+fy(dayInc);div.appendChild(el);}
       if(dayExp>0){let el=document.createElement('div');el.className='day-exp';el.textContent='-'+fy(dayExp);div.appendChild(el);}
       let _k=key,_y=cy2,_m=cm,_d=cd;
-      div.onclick=function(){clickDay(_k,_y,_m,_d);openAddModal(_k,_y,_m,_d)};
+      div.onclick=function(){clickDay(_k,_y,_m,_d)};
     }
     g.appendChild(div);
   });
