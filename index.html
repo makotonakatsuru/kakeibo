@@ -510,6 +510,15 @@ function updateDateHint(){
   if(!sel){document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';return;}
   let p=sel.split('-');
   document.getElementById('date-hint').innerHTML='選択中: <span>'+p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日</span>';
+  // sel-date-labelも更新
+  let label=document.getElementById('sel-date-label');
+  if(label&&label.style.display==='none'){
+    let now=new Date();
+    let isToday=parseInt(p[0])===now.getFullYear()&&parseInt(p[1])-1===now.getMonth()&&parseInt(p[2])===now.getDate();
+    label.textContent=parseInt(p[1])+'月'+parseInt(p[2])+'日'+(isToday?' (今日)':'');
+    label.style.color='#1D9E75';
+    label.style.display='inline';
+  }
 }
 let accessToken=null,userId=null,userName='';
 
@@ -1521,13 +1530,9 @@ function clickDay(key,y,m,d){
   let label=document.getElementById('sel-date-label');
   let isToday=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
   let color=getDayColor(y,m,d);
-  if(isToday){
-    label.style.display='none';
-  }else{
-    label.textContent=(m+1)+'月'+d+'日';
-    label.style.color=color;
-    label.style.display='inline';
-  }
+  label.textContent=(m+1)+'月'+d+'日'+(isToday?' (今日)':'');
+  label.style.color=color;
+  label.style.display='inline';
   // 日付モーダルを表示
   let de=data.filter(e=>e.date===key);
   let title=y+'年'+(m+1)+'月'+d+'日';
