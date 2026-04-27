@@ -18,7 +18,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
   --b:#378ADD;--bl:#E6F1FB;
   --border:#e0e0e0;--bg:#fff;--bg2:#f7f7f7;
 }
-.wrap{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-top:160px}
+.wrap{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-top:165px}
 #auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;background:#fff}
 .auth-logo{font-size:32px;font-weight:700;color:var(--g);margin-bottom:6px}
 .auth-sub{font-size:13px;color:#aaa;margin-bottom:36px}
@@ -35,7 +35,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 .auth-err{font-size:13px;color:var(--r);text-align:center;margin-top:12px;min-height:20px}
 .auth-msg{font-size:13px;color:var(--g);text-align:center;margin-top:12px;min-height:20px}
 #app-screen{display:none}
-.topbar{background:var(--g);padding:2px 16px 6px;position:sticky;top:0;z-index:100}
+.topbar{background:var(--g);padding:2px 14px 4px;position:sticky;top:0;z-index:100}
 .topbar-name{font-size:14px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:1px}
 .topbar-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
 .topbar-bottom{display:flex;align-items:center;justify-content:space-between}
@@ -48,7 +48,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 .nav button{border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:16px;color:#fff}
 .nav span{font-size:14px;font-weight:600;min-width:76px;text-align:center;color:#fff}
 .logout-btn{font-size:12px;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:inherit}
-.sumrow{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:6px 14px 8px;border-top:1px solid rgba(255,255,255,0.2)}
+.sumrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)}
 .sc{background:var(--bg2);border-radius:10px;padding:10px 12px}
 .sc .sl{font-size:11px;color:#888;margin-bottom:3px}
 .sc .sv{font-size:17px;font-weight:600}
@@ -198,30 +198,42 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 <!-- アプリ画面 -->
 <div id="app-screen">
   <div class="wrap">
-    <div class="topbar" style="position:fixed;top:0;left:0;right:0;z-index:100;max-width:480px;margin:0 auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div class="topbar-name" id="user-name-display"></div>
+    <div class="topbar" style="position:fixed;top:0;left:0;right:0;z-index:100;max-width:480px;margin:0 auto;padding:3px 14px 2px">
+      <!-- 1行目：年 / 名前 / 設定 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
+        <div style="display:flex;align-items:center;gap:3px">
+          <button id="prev-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.5);padding:0">◀</button>
+          <span id="ylbl" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600"></span>
+          <button id="next-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.5);padding:0">▶</button>
+        </div>
+        <span id="user-name-display" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600"></span>
         <button class="settings-btn" onclick="toggleSettings()" title="設定">⚙️</button>
       </div>
-
-      <!-- 年表示（中央揃え） -->
-      <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:0px;margin-bottom:24px">
-        <button id="prev-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.45);padding:0 2px;line-height:1">◀</button>
-        <span id="ylbl" style="font-size:16px;color:#fff;font-weight:700;letter-spacing:0.5px"></span>
-        <button id="next-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.45);padding:0 2px;line-height:1">▶</button>
+      <!-- 2行目：月切替（中央） -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <button id="prev" style="border:none;background:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.7);padding:0">‹</button>
+        <span id="mlbl" style="font-size:22px;font-weight:700;color:#fff;min-width:60px;text-align:center;line-height:1"></span>
+        <button id="next" style="border:none;background:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.7);padding:0">›</button>
       </div>
-
-      <!-- 月表示（大きく）＋同期状態 -->
-      <div class="topbar-bottom" style="position:relative">
-        <div class="sync-row">
-          <span class="dot spin" id="dot"></span>
-          <span class="slbl" id="slbl">接続中...</span>
-        </div>
-        <div style="position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px">
-          <button id="prev" style="border:none;background:none;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.5);padding:0 4px;line-height:1">‹</button>
-          <span id="mlbl" style="font-size:32px;font-weight:700;color:#fff;min-width:80px;text-align:center;line-height:1"></span>
-          <button id="next" style="border:none;background:none;cursor:pointer;font-size:13px;color:rgba(255,255,255,0.5);padding:0 4px;line-height:1">›</button>
-        </div>
+      <!-- 同期状態 -->
+      <div class="sync-row" style="margin-top:1px">
+        <span class="dot spin" id="dot"></span>
+        <span class="slbl" id="slbl" style="font-size:10px">接続中...</span>
+      </div>
+    </div>
+    <!-- 収支バー（白背景・固定） -->
+    <div id="sumrow-bar" style="position:fixed;top:var(--topbar-h,72px);left:0;right:0;max-width:480px;margin:0 auto;z-index:99;background:#f5f5f5;padding:8px 12px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="font-size:11px;color:#888;margin-bottom:2px">収入</div>
+        <div id="si" style="font-size:17px;font-weight:700;color:var(--g)">¥0</div>
+      </div>
+      <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="font-size:11px;color:#888;margin-bottom:2px">支出</div>
+        <div id="se" style="font-size:17px;font-weight:700;color:var(--r)">¥0</div>
+      </div>
+      <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="font-size:11px;color:#888;margin-bottom:2px">残高</div>
+        <div id="sb" style="font-size:17px;font-weight:700;color:#333">¥0</div>
       </div>
     </div>
 
@@ -255,10 +267,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         </div>
       </div>
     </div>
-    <div class="sumrow">
-      <div class="sc"><div class="sl" style="color:rgba(255,255,255,0.7)">収入</div><div class="sv i" id="si" style="color:#fff">¥0</div></div>
-      <div class="sc"><div class="sl" style="color:rgba(255,255,255,0.7)">支出</div><div class="sv e" id="se" style="color:#ffaaaa">¥0</div></div>
-      <div class="sc"><div class="sl" style="color:rgba(255,255,255,0.7)">残高</div><div class="sv b" id="sb" style="color:#fff">¥0</div></div>
     <div class="panel">
       <div class="ph" style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;display:none">記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;display:none"></span></div>
       <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
@@ -275,8 +283,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <button class="ab" id="ab" onclick="addE()">追加</button>
         </div>
         <div class="formrow">
-          <div style="font-size:11px;color:#888;margin-bottom:2px">備考（任意）</div>
-          <input type="text" id="note" list="note-history" placeholder="備考（例：マクドナルド）" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
+          <input type="text" id="note" list="note-history" placeholder="備考" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
           <datalist id="note-history"></datalist>
         </div>
       </div>
@@ -423,7 +430,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <input type="number" id="ai2" placeholder="金額を入力（例: 5000）" min="1" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
       </div>
       <div style="margin-bottom:16px">
-        <input type="text" id="note2" list="note-history" placeholder="備考（例：マクドナルド）" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+        <input type="text" id="note2" list="note-history" placeholder="備考" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
       </div>
       <button onclick="addE2()" id="ab2" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">追加</button>
     </div>
@@ -690,6 +697,14 @@ async function load(){
     data=dedup(await r.json());ss('ok','同期済み');
   }catch(e){ss('err','エラー')}
   await loadAnnual();render();updateDateHint();
+  // topbarの高さをCSS変数に反映
+  let tb=document.querySelector('.topbar');
+  if(tb){
+    let h=tb.offsetHeight;
+    document.documentElement.style.setProperty('--topbar-h',h+'px');
+    let bar=document.getElementById('sumrow-bar');
+    if(bar)bar.style.top=h+'px';
+  }
 }
 
 async function loadAnnual(){
@@ -1542,9 +1557,12 @@ function clickDay(key,y,m,d){
   // フォームが画面最上部に来るようスクロール（ヘッダー分を引く）
   let topbar=document.querySelector('.topbar');
   let topbarH=topbar?topbar.offsetHeight:0;
-  let formEl=document.querySelector('.form');
-  let formTop=formEl.getBoundingClientRect().top+window.scrollY-topbarH-60;
-  window.scrollTo({top:formTop,behavior:'smooth'});
+  let bar=document.getElementById('sumrow-bar');
+  let barH=bar?bar.offsetHeight:0;
+  let labelEl=document.getElementById('sel-date-label');
+  let target=labelEl&&labelEl.style.display!=='none'?labelEl:document.querySelector('.ph');
+  let targetTop=target.getBoundingClientRect().top+window.scrollY-topbarH-barH-8;
+  window.scrollTo({top:targetTop,behavior:'smooth'});
   // 記録がある日はポップアップも表示
   let de2=data.filter(e=>e.date===key);
   if(de2.length>0){
@@ -1766,6 +1784,16 @@ tryAutoLogin();
   },{passive:true});
   updateNoteHistory();
   setType2('inc');
+  // sumrow-barの位置を即座にセット
+  setTimeout(function(){
+    let tb=document.querySelector('.topbar');
+    if(tb){
+      let h=tb.offsetHeight;
+      document.documentElement.style.setProperty('--topbar-h',h+'px');
+      let bar=document.getElementById('sumrow-bar');
+      if(bar)bar.style.top=h+'px';
+    }
+  },100);
   applyFixedItems();
 })();
 </script>
