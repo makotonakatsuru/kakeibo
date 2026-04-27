@@ -35,9 +35,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 .auth-err{font-size:13px;color:var(--r);text-align:center;margin-top:12px;min-height:20px}
 .auth-msg{font-size:13px;color:var(--g);text-align:center;margin-top:12px;min-height:20px}
 #app-screen{display:none}
-.topbar{background:var(--g);padding:6px 16px 16px;position:sticky;top:0;z-index:100}
-.topbar-name{font-size:18px;font-weight:600;color:#fff;margin-bottom:2px}
-.topbar-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:10px}
+.topbar{background:var(--g);padding:4px 16px 10px;position:sticky;top:0;z-index:100}
+.topbar-name{font-size:14px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:1px}
+.topbar-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px}
 .topbar-bottom{display:flex;align-items:center;justify-content:space-between}
 .sync-row{display:flex;align-items:center;gap:6px}
 .dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0}
@@ -107,22 +107,24 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .annual-title{font-size:14px;font-weight:600;color:#444}
 .annual-year{font-size:13px;color:#888}
 .annual-table{width:100%;border-collapse:collapse;font-size:12px}
-.annual-table th{padding:7px 6px;text-align:right;color:#888;font-weight:500;border-bottom:2px solid var(--border);white-space:nowrap}
+.annual-table th{padding:10px 6px;text-align:right;color:#888;font-weight:500;border-bottom:2px solid var(--border);white-space:nowrap}
 .annual-table th:first-child{text-align:left}
-.annual-table td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+.annual-table td{padding:10px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
 .annual-table td:first-child{text-align:left;font-weight:500;color:#555}
 .annual-table tr.future td{color:#ccc}
 .annual-table tr.current-month td{background:#f0faf5}
 .annual-table tr.current-month td:first-child{color:var(--g);font-weight:700}
 .annual-table tr.total-row td{font-weight:700;border-top:2px solid var(--border);border-bottom:none;background:var(--bg2)}
+.annual-table tr.bal-plus-row td{background:rgba(29,158,117,0.06)}
+.annual-table tr.bal-minus-row td{background:rgba(226,75,74,0.06)}
 .inc-val{color:var(--g)}.exp-val{color:var(--r)}.warn-val{color:#EF9F27;font-weight:600}
 .bal-pos{color:var(--b);font-weight:600}.bal-neg{color:var(--r);font-weight:600}
 .foot{font-size:11px;color:#aaa;text-align:center;padding:12px 16px;border-top:1px solid var(--border)}
 .settings-btn{background:rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
 .settings-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999}
 .settings-overlay.show{display:block}
-.settings-menu{position:absolute;top:56px;right:12px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);overflow:hidden;min-width:180px}
-.settings-item{display:flex;align-items:center;gap:10px;padding:13px 16px;font-size:14px;color:#333;cursor:pointer;border-bottom:1px solid var(--border)}
+.settings-menu{position:absolute;top:56px;right:12px;background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;min-width:200px}
+.settings-item{display:flex;align-items:center;gap:12px;padding:15px 20px;font-size:15px;color:#333;cursor:pointer;border-bottom:1px solid var(--border)}
 .settings-item:last-child{border-bottom:none}
 .settings-item:hover{background:var(--bg2)}
 .settings-item.danger{color:var(--r)}
@@ -486,7 +488,13 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const INC=['給与','副業','ボーナス','配当','その他収入'];
 const EXP=['食費','外食','交通費','住居費','水道光熱費','通信費','医療費','娯楽','衣類','日用品','教育','保険','税金','貯蓄','投資','その他支出'];
 const INC_COLORS=['#1D9E75','#5DCAA5','#9FE1CB','#0F6E56','#085041','#639922','#97C459'];
-const EXP_COLORS=['#E24B4A','#EF9F27','#D85A30','#D4537E','#7F77DD','#378ADD','#A32D2D','#854F0B','#993556','#534AB7','#185FA5','#712B13','#3C3489','#0C447C','#2E7D32','#72243E'];
+const EXP_COLOR_MAP={
+  '食費':'#E24B4A','外食':'#FF7F50','交通費':'#EF9F27','住居費':'#D4537E',
+  '水道光熱費':'#7F77DD','通信費':'#378ADD','医療費':'#6BCB77','娯楽':'#F9C74F',
+  '衣類':'#C77DFF','日用品':'#4CC9F0','教育':'#185FA5','保険':'#534AB7',
+  '税金':'#A32D2D','貯蓄':'#1D9E75','投資':'#2E7D32','その他支出':'#888888'
+};
+const EXP_COLORS=EXP.map(c=>EXP_COLOR_MAP[c]||'#888888');
 
 let ct='inc',today=new Date(),vy=today.getFullYear(),vm=today.getMonth();
 let _td=today;
@@ -654,7 +662,7 @@ function applySeasonBg(){
   // 写真を読み込んでから適用
   let img=new Image();
   img.onload=function(){
-    tb.style.background='linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)), url('+url+') center/cover no-repeat';
+    tb.style.background='linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.55)), url('+url+') center/cover no-repeat';
   };
   img.onerror=function(){
     // 失敗時はグラデーションのまま
@@ -1564,7 +1572,7 @@ function drawPie(canvasId,legendId,type){
   filtered.forEach(e=>{totals[e.category]=(totals[e.category]||0)+e.amount});
   let ents=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
   let total=ents.reduce((s,e)=>s+e[1],0);
-  let colors=type==='inc'?INC_COLORS:EXP_COLORS;
+  let colors=type==='inc'?INC_COLORS:ents.map(e=>EXP_COLOR_MAP[e[0]]||'#888888');
   let cx=55,cy=55,r=48,ri=22;
   let canvas=document.getElementById(canvasId);
   canvas.style.cursor='pointer';
@@ -1631,7 +1639,9 @@ function renderAnnual(){
       cumInc+=mInc;cumExp+=mExp;let mBal=mInc-mExp;
       let mRate=mInc>0?Math.round(mExp/mInc*100):'-';
       let mRateClass=typeof mRate==='number'?(mRate>=100?'bal-neg':mRate>=90?'exp-val':mRate>=80?'warn-val':'inc-val'):'';
-      rows+=`<tr class="${isCurrent?'current-month':''}">
+      let bal2=mInc-mExp;
+      let rowClass=isCurrent?'current-month':bal2>0?'bal-plus-row':bal2<0?'bal-minus-row':'';
+      rows+=`<tr class="${rowClass}">
         <td>${m+1}月</td>
         <td class="inc-val">${mInc>0?fy(mInc):'-'}</td>
         <td class="exp-val">${mExp>0?fy(mExp):'-'}</td>
@@ -1684,6 +1694,7 @@ function render(){
       let dayExp=de.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
       if(dayInc>0){let el=document.createElement('div');el.className='day-inc';el.textContent='+'+fy(dayInc);div.appendChild(el);}
       if(dayExp>0){let el=document.createElement('div');el.className='day-exp';el.textContent='-'+fy(dayExp);div.appendChild(el);}
+      if(dayInc>0||dayExp>0){let dot=document.createElement('div');dot.style.cssText='width:5px;height:5px;border-radius:50%;background:'+(dayInc>0&&dayExp>0?'var(--b)':dayInc>0?'var(--g)':'var(--r)')+';margin:1px auto 0';div.appendChild(dot);}
       let _k=key,_y=cy2,_m=cm,_d=cd;
       div.onclick=function(){clickDay(_k,_y,_m,_d)};
     }
