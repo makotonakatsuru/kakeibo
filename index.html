@@ -18,7 +18,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
   --b:#378ADD;--bl:#E6F1FB;
   --border:#e0e0e0;--bg:#fff;--bg2:#f7f7f7;
 }
-.wrap{max-width:480px;margin:0 auto;background:#fff;min-height:100vh}
+.wrap{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-top:160px}
 #auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;background:#fff}
 .auth-logo{font-size:32px;font-weight:700;color:var(--g);margin-bottom:6px}
 .auth-sub{font-size:13px;color:#aaa;margin-bottom:36px}
@@ -35,9 +35,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 .auth-err{font-size:13px;color:var(--r);text-align:center;margin-top:12px;min-height:20px}
 .auth-msg{font-size:13px;color:var(--g);text-align:center;margin-top:12px;min-height:20px}
 #app-screen{display:none}
-.topbar{background:var(--g);padding:4px 16px 10px;position:sticky;top:0;z-index:100}
+.topbar{background:var(--g);padding:2px 16px 6px;position:sticky;top:0;z-index:100}
 .topbar-name{font-size:14px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:1px}
-.topbar-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px}
+.topbar-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
 .topbar-bottom{display:flex;align-items:center;justify-content:space-between}
 .sync-row{display:flex;align-items:center;gap:6px}
 .dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0}
@@ -48,7 +48,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 .nav button{border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:16px;color:#fff}
 .nav span{font-size:14px;font-weight:600;min-width:76px;text-align:center;color:#fff}
 .logout-btn{font-size:12px;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:inherit}
-.sumrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.sumrow{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:6px 14px 8px;border-top:1px solid rgba(255,255,255,0.2)}
 .sc{background:var(--bg2);border-radius:10px;padding:10px 12px}
 .sc .sl{font-size:11px;color:#888;margin-bottom:3px}
 .sc .sv{font-size:17px;font-weight:600}
@@ -198,7 +198,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 <!-- アプリ画面 -->
 <div id="app-screen">
   <div class="wrap">
-    <div class="topbar">
+    <div class="topbar" style="position:fixed;top:0;left:0;right:0;z-index:100;max-width:480px;margin:0 auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div class="topbar-name" id="user-name-display"></div>
         <button class="settings-btn" onclick="toggleSettings()" title="設定">⚙️</button>
@@ -256,10 +256,9 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       </div>
     </div>
     <div class="sumrow">
-      <div class="sc"><div class="sl">収入</div><div class="sv i" id="si">¥0</div></div>
-      <div class="sc"><div class="sl">支出</div><div class="sv e" id="se">¥0</div></div>
-      <div class="sc"><div class="sl">残高</div><div class="sv b" id="sb">¥0</div></div>
-    </div>
+      <div class="sc"><div class="sl" style="color:rgba(255,255,255,0.7)">収入</div><div class="sv i" id="si" style="color:#fff">¥0</div></div>
+      <div class="sc"><div class="sl" style="color:rgba(255,255,255,0.7)">支出</div><div class="sv e" id="se" style="color:#ffaaaa">¥0</div></div>
+      <div class="sc"><div class="sl" style="color:rgba(255,255,255,0.7)">残高</div><div class="sv b" id="sb" style="color:#fff">¥0</div></div>
     <div class="panel">
       <div class="ph" style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;display:none">記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;display:none"></span></div>
       <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
