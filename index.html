@@ -259,6 +259,9 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <span class="settings-icon">📥</span>CSVインポート
         </div>
         <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        <div class="settings-item" onclick="showAddToHome();closeSettings()">
+          <span class="settings-icon">📱</span>ホーム画面に追加
+        </div>
         <div class="settings-item danger" onclick="doLogout();closeSettings()">
           <span class="settings-icon">🚪</span>ログアウト
         </div>
@@ -357,6 +360,42 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
   </div>
 </div>
 <!-- 固定費設定モーダル -->
+<!-- ホーム画面追加モーダル -->
+<div class="modal-overlay" id="addtohome-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📱 ホーム画面に追加</div>
+      <button class="modal-close" onclick="document.getElementById('addtohome-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <!-- iOS Safari -->
+      <div style="margin-bottom:16px;padding:12px;background:#f0faf5;border-radius:12px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px">🍎 iPhoneの場合（Safari）</div>
+        <div style="font-size:13px;color:#555;line-height:1.8">
+          1. Safariでこのページを開く<br>
+          2. 下の <strong>共有ボタン（□↑）</strong> をタップ<br>
+          3. <strong>「ホーム画面に追加」</strong> をタップ<br>
+          4. 右上の <strong>「追加」</strong> をタップ
+        </div>
+      </div>
+      <!-- Android Chrome -->
+      <div style="padding:12px;background:#f0f4ff;border-radius:12px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px">🤖 Androidの場合（Chrome）</div>
+        <div style="font-size:13px;color:#555;line-height:1.8">
+          1. Chromeでこのページを開く<br>
+          2. 右上の <strong>「⋮」メニュー</strong> をタップ<br>
+          3. <strong>「ホーム画面に追加」</strong> をタップ<br>
+          4. <strong>「追加」</strong> をタップ
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:#aaa;text-align:center">
+        追加するとアプリのように使えます😊
+      </div>
+      <!-- URLをコピー -->
+      <button onclick="copyURL()" style="width:100%;margin-top:12px;padding:10px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">🔗 URLをコピー</button>
+    </div>
+  </div>
+</div>
 <!-- 予算設定モーダル -->
 <div class="modal-overlay" id="budget-modal" onclick="closeBudgetModal(event)">
   <div class="modal">
@@ -520,9 +559,40 @@ function updateDateHint(){
     label.style.display='inline';
   }
 }
-let accessToken=null,userId=null,userName='';
+let accessToken=null,refreshToken=null,userId=null,userName='';
 
 function H(x={}){return{'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+(accessToken||SK),...x}}
+
+async function refreshAccessToken(){
+  let rt=refreshToken||localStorage.getItem('kb_refresh');
+  if(!rt)return false;
+  try{
+    let r=await fetch(SU+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({refresh_token:rt})
+    });
+    if(!r.ok)return false;
+    let d=await r.json();
+    accessToken=d.access_token;
+    if(d.refresh_token){refreshToken=d.refresh_token;localStorage.setItem('kb_refresh',d.refresh_token);}
+    localStorage.setItem('kb_token',accessToken);
+    return true;
+  }catch(e){return false;}
+}
+
+async function fetchWithRefresh(url,options){
+  let r=await fetch(url,options);
+  if(r.status===401||r.status===403){
+    let ok=await refreshAccessToken();
+    if(ok){
+      // ヘッダーを更新して再試行
+      options.headers={...options.headers,...H()};
+      r=await fetch(url,options);
+    }
+  }
+  return r;
+}
 function fy(n){return '¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP')}
 function fk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 function ss(s,t){document.getElementById('dot').className='dot '+s;document.getElementById('slbl').textContent=t}
@@ -597,7 +667,7 @@ async function deleteAccount(){
   ss('spin','削除中...');
   try{
     // 全データ削除
-    await fetch(SU+'/rest/v1/entries?user_id=eq.'+userId,{method:'DELETE',headers:H()});
+    await fetchWithRefresh(SU+'/rest/v1/entries?user_id=eq.'+userId,{method:'DELETE',headers:H()});
     // アカウント削除
     await fetch(SU+'/auth/v1/user',{method:'DELETE',headers:H()});
     alert('アカウントを削除しました。');
@@ -608,7 +678,7 @@ async function deleteAccount(){
 async function doLogout(){
   try{await fetch(SU+'/auth/v1/logout',{method:'POST',headers:H()})}catch(e){}
   accessToken=null;userId=null;userName='';
-  localStorage.removeItem('kb_token');localStorage.removeItem('kb_uid');
+  localStorage.removeItem('kb_token');localStorage.removeItem('kb_uid');localStorage.removeItem('kb_refresh');
   document.getElementById('app-screen').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
 }
@@ -621,6 +691,7 @@ async function tryAutoLogin(){
     if(!r.ok)throw new Error();
     let d=await r.json();
     accessToken=token;userId=d.id;
+    refreshToken=localStorage.getItem('kb_refresh')||null;
     userName=d.user_metadata?.name||d.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.id)||d.email.split('@')[0];
     localStorage.setItem('kb_name_'+userId,userName);
     showApp();
@@ -701,7 +772,7 @@ async function load(){
   ss('spin','読込中...');
   try{
     let p=vy+'-'+String(vm+1).padStart(2,'0')+'-';
-    let r=await fetch(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(p+'*')+'&order=created_at.asc&user_id=eq.'+userId,{headers:H()});
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(p+'*')+'&order=created_at.asc&user_id=eq.'+userId,{headers:H()});
     if(!r.ok)throw new Error();
     data=dedup(await r.json());ss('ok','同期済み');
   }catch(e){ss('err','エラー')}
@@ -718,7 +789,7 @@ async function load(){
 
 async function loadAnnual(){
   try{
-    let r=await fetch(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(vy+'-*')+'&order=date.asc&user_id=eq.'+userId,{headers:H()});
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(vy+'-*')+'&order=date.asc&user_id=eq.'+userId,{headers:H()});
     if(!r.ok)throw new Error();
     annualData=dedup(await r.json());
   }catch(e){annualData=[]}
@@ -732,7 +803,7 @@ async function addE(){
   let btn=document.getElementById('ab');
   btn.disabled=true;btn.textContent='保存中';ss('spin','保存中...');
   try{
-    let r=await fetch(SU+'/rest/v1/entries',{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
       method:'POST',headers:{...H(),'Prefer':'return=representation'},
       body:JSON.stringify({date:sel,type:ct,category:c,amount:a,user_id:userId,note:document.getElementById('note').value.trim()||null})
     });
@@ -919,6 +990,18 @@ function renderTrendChart(){
   ctx.fillStyle='#444';ctx.fillText('支出',pad.l+64,10);
 }
 
+function showAddToHome(){
+  document.getElementById('addtohome-modal').classList.add('show');
+}
+function copyURL(){
+  let url='https://makotonakatsuru.github.io/kakeibo/';
+  navigator.clipboard.writeText(url).then(()=>{
+    ss('ok','URLをコピーしました！');
+    document.getElementById('addtohome-modal').classList.remove('show');
+  }).catch(()=>{
+    prompt('このURLをコピーしてください',url);
+  });
+}
 function updateNoteHistory(){
   let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');
   let dl=document.getElementById('note-history');
@@ -1082,7 +1165,7 @@ async function deleteFixed(i){
     while(curY<endY2||(curY===endY2&&curM<=endM2-1)){
       let actualDay3=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
       let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay3).padStart(2,'0');
-      await fetch(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      await fetchWithRefresh(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
       curM++;if(curM>11){curM=0;curY++;}
     }
     // 固定費設定の終了月を更新
@@ -1114,7 +1197,7 @@ async function editFixed(i){
     while(curY<endY2||(curY===endY2&&curM<=endM2)){
       let actualDay3=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
       let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay3).padStart(2,'0');
-      await fetch(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      await fetchWithRefresh(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
       curM++;if(curM>11){curM=0;curY++;}
     }
     ss('ok','削除完了');
@@ -1172,7 +1255,7 @@ async function applyOneFixedItem(item){
   let added=0;
   for(let entry of toAdd){
     try{
-      let r=await fetch(SU+'/rest/v1/entries',{
+      let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
         method:'POST',headers:{...H(),'Prefer':'return=representation'},
         body:JSON.stringify(entry)
       });
@@ -1220,7 +1303,7 @@ async function applyFixedItems(){
   let added3=0;
   for(let entry of toAdd){
     try{
-      let r=await fetch(SU+'/rest/v1/entries',{
+      let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
         method:'POST',headers:{...H(),'Prefer':'return=representation'},
         body:JSON.stringify(entry)
       });
@@ -1273,7 +1356,7 @@ async function importCSV(event){
   ss('spin','インポート中...');
   for(let entry of entries){
     try{
-      let r=await fetch(SU+'/rest/v1/entries',{
+      let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
         method:'POST',
         headers:{...H(),'Prefer':'return=representation'},
         body:JSON.stringify(entry)
@@ -1412,7 +1495,7 @@ async function saveEdit(){
   let date=document.getElementById('edit-date').value;
   if(!amt||amt<=0){alert('金額を入力してください');return}
   try{
-    let r=await fetch(SU+'/rest/v1/entries?id=eq.'+editingId+'&user_id=eq.'+userId,{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?id=eq.'+editingId+'&user_id=eq.'+userId,{
       method:'PATCH',
       headers:{...H(),'Prefer':'return=representation'},
       body:JSON.stringify({type:editType,category:cat,amount:amt,note:note,date:date})
@@ -1431,7 +1514,7 @@ async function delChecked(){
   ss('spin','削除中...');
   try{
     for(let id of checked){
-      await fetch(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      await fetchWithRefresh(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
       data=data.filter(e=>e.id!=id);
       annualData=annualData.filter(e=>e.id!=id);
     }
@@ -1445,7 +1528,7 @@ async function delE(id){
   if(!confirm('この記録を削除しますか？'))return;
   ss('spin','削除中...');
   try{
-    let r=await fetch(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
     if(!r.ok)throw new Error();
     data=data.filter(e=>e.id!==id);annualData=annualData.filter(e=>e.id!==id);
     ss('ok','削除しました');
@@ -1506,7 +1589,7 @@ async function addE2(){
   let btn=document.getElementById('ab2');
   btn.disabled=true;btn.textContent='保存中';ss('spin','保存中...');
   try{
-    let r=await fetch(SU+'/rest/v1/entries',{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
       method:'POST',headers:{...H(),'Prefer':'return=representation'},
       body:JSON.stringify({date:sel,type:ct2,category:c,amount:a,user_id:userId,note:document.getElementById('note2').value.trim()||null})
     });
