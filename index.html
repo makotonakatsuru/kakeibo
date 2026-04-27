@@ -259,6 +259,12 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <span class="settings-icon">📥</span>CSVインポート
         </div>
         <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        <div class="settings-item" onclick="showGuide();closeSettings()">
+          <span class="settings-icon">📖</span>使い方ガイド
+        </div>
+        <div class="settings-item" onclick="showMemoHelp();closeSettings()">
+          <span class="settings-icon">📝</span>メモ機能の使い方
+        </div>
         <div class="settings-item" onclick="showAddToHome();closeSettings()">
           <span class="settings-icon">📱</span>ホーム画面に追加
         </div>
@@ -393,6 +399,110 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       </div>
       <!-- URLをコピー -->
       <button onclick="copyURL()" style="width:100%;margin-top:12px;padding:10px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">🔗 URLをコピー</button>
+    </div>
+  </div>
+</div>
+<!-- 使い方ガイドモーダル -->
+<div class="modal-overlay" id="guide-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📖 使い方ガイド</div>
+      <button class="modal-close" onclick="document.getElementById('guide-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 記録の追加</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カレンダーの日付をタップすると上部の入力フォームに移動します。<br>
+            収入・支出を選んでカテゴリ・金額・備考を入力して<strong>「追加」</strong>ボタンを押してください。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 記録の確認・編集</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            記録がある日（●マーク）をタップするとその日の記録一覧が表示されます。<br>
+            記録をタップすると編集、✕で削除できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費・収入の自動登録</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            毎月の給与や家賃など固定の収支を設定→🔄固定費・収入の設定から登録すると自動で記録されます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📊 グラフ・内訳の確認</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カテゴリ別の円グラフをタップすると備考別の詳細が確認できます。<br>
+            月別推移グラフで収入・支出の傾向も一目でわかります。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🎯 月間予算の設定</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→🎯月間予算の設定からカテゴリごとに予算を設定できます。<br>
+            使用率がバーで表示され、超えると赤くなります。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📤 データのエクスポート</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→📤CSVエクスポートで全データをExcel形式でダウンロードできます。<br>
+            📥CSVインポートで他のアプリのデータを取り込むこともできます。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- メモ使い方モーダル -->
+<div class="modal-overlay" id="memo-help-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📝 メモ機能の使い方</div>
+      <button class="modal-close" onclick="document.getElementById('memo-help-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 メモを追加する</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カレンダーの日付を<strong>長押し</strong>するとメモ入力画面が開きます。<br>
+            病院・イベント・誕生日など何でも書けます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 メモがある日の確認</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            メモがある日はカレンダーに<strong>📝マーク</strong>が表示されます。<br>
+            日付をタップするとメモの内容も確認できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">✏️ メモを編集・削除する</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            もう一度長押しするか、メモをタップすると編集できます。<br>
+            内容を空にして保存すると削除されます。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- メモモーダル -->
+<div class="modal-overlay" id="memo-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="memo-modal-title">📝 メモ</div>
+      <button class="modal-close" onclick="document.getElementById('memo-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <textarea id="memo-text" placeholder="イベント、病院、予定など..." style="width:100%;height:120px;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:10px;box-sizing:border-box;resize:none;font-family:inherit"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="deleteMemo()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:14px;color:var(--r);cursor:pointer">削除</button>
+        <button onclick="saveMemo()" style="flex:2;padding:10px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">保存</button>
+      </div>
     </div>
   </div>
 </div>
@@ -990,6 +1100,14 @@ function renderTrendChart(){
   ctx.fillStyle='#444';ctx.fillText('支出',pad.l+64,10);
 }
 
+function showGuide(){
+  document.getElementById('guide-modal').classList.add('show');
+}
+
+function showMemoHelp(){
+  document.getElementById('memo-help-modal').classList.add('show');
+}
+
 function showAddToHome(){
   document.getElementById('addtohome-modal').classList.add('show');
 }
@@ -1002,6 +1120,52 @@ function copyURL(){
     prompt('このURLをコピーしてください',url);
   });
 }
+// ===== カレンダーメモ機能 =====
+let memoCurrentKey=null;
+
+function getMemos(){
+  return JSON.parse(localStorage.getItem('cal_memos_'+userId)||'{}');
+}
+function saveMemos(memos){
+  localStorage.setItem('cal_memos_'+userId,JSON.stringify(memos));
+}
+
+function openMemoModal(key,y,m,d){
+  memoCurrentKey=key;
+  let memos=getMemos();
+  let dayColor=getDayColor(y,m,d);
+  document.getElementById('memo-modal-title').innerHTML='📝 '+(m+1)+'月'+d+'日のメモ';
+  document.getElementById('memo-modal-title').style.color=dayColor;
+  document.getElementById('memo-text').value=memos[key]||'';
+  document.getElementById('memo-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('memo-text').focus(),300);
+}
+
+function saveMemo(){
+  if(!memoCurrentKey)return;
+  let text=document.getElementById('memo-text').value.trim();
+  let memos=getMemos();
+  if(text){
+    memos[memoCurrentKey]=text;
+  }else{
+    delete memos[memoCurrentKey];
+  }
+  saveMemos(memos);
+  document.getElementById('memo-modal').classList.remove('show');
+  render();
+  ss('ok','メモを保存しました');
+}
+
+function deleteMemo(){
+  if(!memoCurrentKey)return;
+  let memos=getMemos();
+  delete memos[memoCurrentKey];
+  saveMemos(memos);
+  document.getElementById('memo-modal').classList.remove('show');
+  render();
+  ss('ok','メモを削除しました');
+}
+
 function updateNoteHistory(){
   let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');
   let dl=document.getElementById('note-history');
@@ -1804,8 +1968,30 @@ function render(){
         if(dayExp>0){let d=document.createElement('div');d.style.cssText='width:6px;height:6px;border-radius:50%;background:var(--r)';dotsWrap.appendChild(d);}
         div.appendChild(dotsWrap);
       }
+      // メモがあれば📝マークを表示
+      let memos=getMemos();
+      if(memos[key]){
+        let memoMark=document.createElement('div');
+        memoMark.style.cssText='font-size:8px;text-align:center;line-height:1;margin-top:1px';
+        memoMark.textContent='📝';
+        div.appendChild(memoMark);
+      }
       let _k=key,_y=cy2,_m=cm,_d=cd;
-      div.onclick=function(){clickDay(_k,_y,_m,_d)};
+      // タップで記録、長押しでメモ
+      let pressTimer=null;
+      div.addEventListener('touchstart',function(e){
+        pressTimer=setTimeout(function(){
+          pressTimer=null;
+          openMemoModal(_k,_y,_m,_d);
+        },600);
+      },{passive:true});
+      div.addEventListener('touchend',function(e){
+        if(pressTimer){clearTimeout(pressTimer);pressTimer=null;clickDay(_k,_y,_m,_d);}
+      });
+      div.addEventListener('touchmove',function(e){
+        if(pressTimer){clearTimeout(pressTimer);pressTimer=null;}
+      },{passive:true});
+      div.onclick=function(e){if(!('ontouchstart' in window))clickDay(_k,_y,_m,_d);};
     }
     g.appendChild(div);
   });
