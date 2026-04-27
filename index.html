@@ -148,6 +148,28 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 
 <!-- 認証画面 -->
 <div id="auth-screen">
+    <!-- ログイン前ガイド -->
+    <div id="guest-guide" style="width:100%;max-width:360px;margin-bottom:20px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:32px">📒</div>
+        <div style="font-size:20px;font-weight:700;color:#1D9E75;margin-bottom:4px">かんたん家計簿</div>
+        <div style="font-size:13px;color:#888">シンプルで使いやすい、あなただけの家計簿</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;background:#f0faf5;border-radius:10px;padding:10px">
+          <span style="font-size:22px">📅</span>
+          <div><div style="font-size:13px;font-weight:600">カレンダーで記録</div><div style="font-size:11px;color:#888">日付をタップしてすぐ入力</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#f0faf5;border-radius:10px;padding:10px">
+          <span style="font-size:22px">🔄</span>
+          <div><div style="font-size:13px;font-weight:600">固定費を自動登録</div><div style="font-size:11px;color:#888">毎月の支払いを自動で記録</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#f0faf5;border-radius:10px;padding:10px">
+          <span style="font-size:22px">📊</span>
+          <div><div style="font-size:13px;font-weight:600">グラフで見える化</div><div style="font-size:11px;color:#888">支出の傾向をひと目で確認</div></div>
+        </div>
+      </div>
+    </div>
   <div class="auth-logo">💰 家計簿</div>
   <div class="auth-sub">あなただけの家計管理</div>
   <div class="auth-box">
@@ -252,6 +274,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <button class="ab" id="ab" onclick="addE()">追加</button>
         </div>
         <div class="formrow">
+          <div style="font-size:11px;color:#888;margin-bottom:2px">備考（任意）</div>
           <input type="text" id="note" list="note-history" placeholder="備考（例：マクドナルド）" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
           <datalist id="note-history"></datalist>
         </div>
@@ -288,9 +311,14 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       </div>
       <div id="budget-bars"></div>
     </div>
+    <!-- 月間支出カテゴリ棒グラフ -->
+    <div class="chart-section">
+      <div class="chart-section-title">今月の支出内訳</div>
+      <canvas id="bar-chart" height="180" style="width:100%"></canvas>
+    </div>
     <!-- 月別推移グラフ -->
     <div class="chart-section">
-      <div class="chart-section-title">月別推移</div>
+      <div class="chart-section-title">月別推移（収入 vs 支出）</div>
       <canvas id="trend-chart" height="160" style="width:100%"></canvas>
     </div>
     <div class="annual-section">
@@ -740,6 +768,63 @@ function renderBudgetBars(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ===== 月間支出棒グラフ =====
+function renderBarChart(){
+  let canvas=document.getElementById('bar-chart');
+  if(!canvas)return;
+  let ctx=canvas.getContext('2d');
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let seen=new Set();
+  let md=annualData.filter(e=>{
+    if(!e.date.startsWith(prefix)||e.type!=='exp')return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  let totals={};
+  md.forEach(e=>{totals[e.category]=(totals[e.category]||0)+e.amount;});
+  let ents=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!ents.length){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#aaa';ctx.font='13px sans-serif';ctx.textAlign='center';
+    ctx.fillText('支出データがありません',canvas.offsetWidth/2,90);
+    return;
+  }
+  let W=canvas.offsetWidth||320;
+  canvas.width=W*window.devicePixelRatio||W;
+  canvas.height=180*window.devicePixelRatio||180;
+  ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  let w=W,h=180,pad={t:10,r:10,b:50,l:55};
+  let cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  let maxVal=Math.max(...ents.map(e=>e[1]),1);
+  let colors=['#E24B4A','#EF9F27','#7F77DD','#378ADD','#1D9E75','#D85A30'];
+  ctx.clearRect(0,0,w,h);
+  // グリッド
+  ctx.strokeStyle='#eee';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    let y=pad.t+ch*(1-i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='9px sans-serif';ctx.textAlign='right';
+    ctx.fillText(fy(Math.round(maxVal*i/4)),pad.l-4,y+3);
+  }
+  // バー
+  let bw=Math.min(cw/ents.length*0.6,35);
+  let gap=cw/ents.length;
+  ents.forEach(([cat,val],i)=>{
+    let bh=ch*(val/maxVal);
+    let x=pad.l+gap*i+gap/2-bw/2;
+    let y=pad.t+ch-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.beginPath();
+    ctx.roundRect(x,y,bw,bh,4);
+    ctx.fill();
+    // ラベル
+    ctx.fillStyle='#555';ctx.font='9px sans-serif';ctx.textAlign='center';
+    let label=cat.length>4?cat.slice(0,4)+'…':cat;
+    ctx.fillText(label,x+bw/2,h-pad.b+12);
+    ctx.fillText(fy(val),x+bw/2,y-3);
+  });
 }
 
 // ===== 月別推移グラフ =====
@@ -1615,6 +1700,7 @@ function render(){
   drawPie('pie-exp','legend-exp','exp');
   renderAnnual();
   renderBudgetBars();
+  renderBarChart();
   renderTrendChart();
   let list=document.getElementById('elist');
   if(!sel){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
