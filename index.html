@@ -161,20 +161,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .store-picker-item{padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .store-picker-item:active{background:var(--bg2)}
 .store-picker-empty{font-size:13px;color:#aaa;text-align:center;padding:20px 0}
-/* OCR */
-.ocr-btn{width:100%;padding:11px;border:2px dashed #b8dfcf;border-radius:10px;background:#f0faf5;color:var(--gd);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px}
-.ocr-btn:active{opacity:.7}
-.ocr-result{border:1px solid var(--border);border-radius:10px;background:#fafafa;padding:12px;margin-bottom:12px;display:none}
-.ocr-result.show{display:block}
-.ocr-result-title{font-size:12px;color:#888;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
-.ocr-field{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
-.ocr-field:last-child{border-bottom:none}
-.ocr-field-label{color:#888}
-.ocr-field-val{font-weight:600;color:#222}
-.ocr-apply-btn{width:100%;margin-top:10px;padding:9px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
-.ocr-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;color:#888;font-size:13px}
-.ocr-spin{width:18px;height:18px;border:2px solid #ddd;border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -290,9 +276,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <span class="settings-icon">📥</span>CSVインポート
         </div>
         <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
-        <div class="settings-item" onclick="openVisionKeyModal();closeSettings()">
-          <span class="settings-icon">📷</span>レシートOCR APIキー
-        </div>
         <div class="settings-item" onclick="openStoreModal();closeSettings()">
           <span class="settings-icon">🏪</span>よく使うお店
         </div>
@@ -319,18 +302,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="panel">
       <div class="ph" style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;display:none">記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;display:none"></span></div>
       <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
-      <!-- OCR（メインフォーム） -->
-      <label for="ocr-file-panel" class="ocr-btn">
-        <span>📷</span>レシートを撮影して自動入力
-      </label>
-      <input type="file" id="ocr-file-panel" accept="image/*" style="display:none" onchange="handleOcrFile(event,'panel')">
-      <div class="ocr-result" id="ocr-result-panel">
-        <div class="ocr-result-title">
-          <span>📋 読み取り結果</span>
-          <button onclick="document.getElementById('ocr-result-panel').classList.remove('show')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:0">✕</button>
-        </div>
-        <div id="ocr-result-body-panel"></div>
-      </div>
       <div class="form">
         <div class="formrow">
           <div class="tt">
@@ -658,18 +629,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <button class="modal-close" onclick="document.getElementById('add-modal').classList.remove('show')">✕</button>
     </div>
     <div class="modal-body" style="padding:16px">
-      <!-- OCR -->
-      <label for="ocr-file-modal" class="ocr-btn">
-        <span>📷</span>レシートを撮影して自動入力
-      </label>
-      <input type="file" id="ocr-file-modal" accept="image/*" style="display:none" onchange="handleOcrFile(event,'modal')">
-      <div class="ocr-result" id="ocr-result">
-        <div class="ocr-result-title">
-          <span>📋 読み取り結果</span>
-          <button onclick="document.getElementById('ocr-result').classList.remove('show')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:0">✕</button>
-        </div>
-        <div id="ocr-result-body"></div>
-      </div>
       <div style="margin-bottom:12px">
         <div style="display:flex;gap:8px">
           <button id="ib2" onclick="setType2('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
@@ -724,38 +683,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <input type="date" id="edit-date" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
       </div>
       <button onclick="saveEdit()" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">保存</button>
-    </div>
-  </div>
-</div>
-<!-- Vision APIキー設定モーダル -->
-<div class="modal-overlay" id="visionkey-modal" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">📷 レシートOCR APIキー設定</div>
-      <button class="modal-close" onclick="document.getElementById('visionkey-modal').classList.remove('show')">✕</button>
-    </div>
-    <div class="modal-body" style="padding:16px">
-      <div id="visionkey-status" style="margin-bottom:14px;padding:10px 12px;border-radius:10px;font-size:13px"></div>
-      <div style="margin-bottom:8px">
-        <div style="font-size:12px;color:#888;margin-bottom:5px">Google Vision APIキー</div>
-        <div style="display:flex;gap:8px">
-          <input type="password" id="visionkey-input" placeholder="AIza..." autocomplete="off"
-            style="flex:1;font-size:15px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:monospace">
-          <button onclick="toggleVisionKeyVisible()" id="visionkey-eye"
-            style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:16px;cursor:pointer;flex-shrink:0">👁</button>
-        </div>
-      </div>
-      <div style="font-size:12px;color:#aaa;line-height:1.7;margin-bottom:14px">
-        Google Cloud Console でVision APIを有効化し、<br>
-        「認証情報」→「APIキーを作成」で取得できます。<br>
-        キーはこの端末のみに保存され、外部には送信されません。
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="saveVisionKey()"
-          style="flex:2;padding:11px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">保存</button>
-        <button onclick="clearVisionKey()"
-          style="flex:1;padding:11px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:14px;color:var(--r);cursor:pointer">削除</button>
-      </div>
     </div>
   </div>
 </div>
@@ -2203,231 +2130,6 @@ function render(){
     <button class="db" onclick="event.stopPropagation();delE('${e.id}')">✕</button>
   </div>
 `).join('');
-}
-
-// ===== OCR レシート読み取り =====
-async function handleOcrFile(e, target){
-  let file=e.target.files[0];
-  e.target.value='';
-  if(!file)return;
-  let tgt=target||'panel';
-  let resultId=tgt==='modal'?'ocr-result':'ocr-result-panel';
-  let bodyId=tgt==='modal'?'ocr-result-body':'ocr-result-body-panel';
-  let resultEl=document.getElementById(resultId);
-  let bodyEl=document.getElementById(bodyId);
-  resultEl.classList.add('show');
-  bodyEl.innerHTML='<div class="ocr-loading"><div class="ocr-spin"></div>読み取り中...</div>';
-  try{
-    let b64=await fileToBase64(file);
-    let text=await callVisionAPI(b64);
-    if(!text){bodyEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:12px">テキストが読み取れませんでした</div>';return;}
-    let parsed=parseReceiptText(text);
-    showOcrResult(parsed,bodyEl,tgt);
-  }catch(err){
-    bodyEl.innerHTML='<div style="color:var(--r);font-size:13px;padding:12px">⚠️ '+err.message+'</div>';
-  }
-}
-function fileToBase64(file){
-  return new Promise((resolve,reject)=>{
-    let reader=new FileReader();
-    reader.onload=function(ev){
-      let img=new Image();
-      img.onload=function(){
-        let canvas=document.createElement('canvas');
-        let maxW=1200,maxH=1600,w=img.width,h=img.height;
-        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-        if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-        canvas.width=w;canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL('image/jpeg',0.85).split(',')[1]);
-      };
-      img.onerror=reject;
-      img.src=ev.target.result;
-    };
-    reader.onerror=reject;
-    reader.readAsDataURL(file);
-  });
-}
-function getVisionKey(){return localStorage.getItem('vision_api_key')||'';}
-function openVisionKeyModal(){
-  let key=getVisionKey();
-  let statusEl=document.getElementById('visionkey-status');
-  if(key){
-    statusEl.style.background='#f0faf5';statusEl.style.color='var(--gd)';
-    statusEl.textContent='✅ APIキーが設定済みです（'+key.slice(0,8)+'…）';
-    document.getElementById('visionkey-input').value=key;
-  }else{
-    statusEl.style.background='#fff8e1';statusEl.style.color='#b26a00';
-    statusEl.textContent='⚠️ APIキーが未設定です。レシートOCRは使えません。';
-    document.getElementById('visionkey-input').value='';
-  }
-  document.getElementById('visionkey-modal').classList.add('show');
-}
-function toggleVisionKeyVisible(){
-  let inp=document.getElementById('visionkey-input');
-  let btn=document.getElementById('visionkey-eye');
-  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
-  else{inp.type='password';btn.textContent='👁';}
-}
-function saveVisionKey(){
-  let key=document.getElementById('visionkey-input').value.trim();
-  if(!key){alert('APIキーを入力してください');return;}
-  localStorage.setItem('vision_api_key',key);
-  document.getElementById('visionkey-modal').classList.remove('show');
-  ss('ok','APIキーを保存しました');
-}
-function clearVisionKey(){
-  if(!confirm('APIキーを削除しますか？'))return;
-  localStorage.removeItem('vision_api_key');
-  document.getElementById('visionkey-input').value='';
-  document.getElementById('visionkey-modal').classList.remove('show');
-  ss('ok','APIキーを削除しました');
-}
-async function callVisionAPI(b64){
-  let key=getVisionKey();
-  if(!key){
-    throw new Error('APIキーが未設定です。設定→📷レシートOCR APIキー から登録してください');
-  }
-  let res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+key,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({requests:[{image:{content:b64},features:[{type:'TEXT_DETECTION',maxResults:1}]}]})
-  });
-  if(!res.ok){
-    let err=await res.json().catch(()=>({}));
-    throw new Error(err.error?.message||'Vision API エラー ('+res.status+')');
-  }
-  let d=await res.json();
-  return d.responses?.[0]?.fullTextAnnotation?.text||d.responses?.[0]?.textAnnotations?.[0]?.description||'';
-}
-function parseReceiptText(text){
-  let lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
-
-  // --- 金額（キーワード行からのみ抽出・それ以外の行は一切見ない） ---
-
-  // キーワード以降の文字列から金額を取り出す（同行用・寛容）
-  // ¥付き → カンマ区切り → 数字列 の優先順
-  function extractAfterKw(s){
-    let m=s.match(/[¥￥]\s*([\d,，]+)/);
-    if(m) return parseInt(m[1].replace(/[,，]/g,''));
-    m=s.match(/\b(\d{1,3}(?:[,，]\d{3})+)\b/);
-    if(m) return parseInt(m[1].replace(/[,，]/g,''));
-    // キーワード直後の数字列（スペース・コロン・タブ区切りを想定）
-    m=s.match(/^[\s:：\t]*(\d+)/);
-    if(m) return parseInt(m[1]);
-    return null;
-  }
-
-  // 次行から金額を取り出す（厳格：¥付き・カンマ区切り・行全体が数字のみ）
-  function extractNextLine(s){
-    let m=s.match(/[¥￥]\s*([\d,，]+)/);
-    if(m) return parseInt(m[1].replace(/[,，]/g,''));
-    m=s.match(/\b(\d{1,3}(?:[,，]\d{3})+)\b/);
-    if(m) return parseInt(m[1].replace(/[,，]/g,''));
-    // 行全体がほぼ数字だけの場合（合計が独立行に記載されているケース）
-    m=s.match(/^\s*([\d,，]+)\s*$/);
-    if(m) return parseInt(m[1].replace(/[,，]/g,''));
-    return null;
-  }
-
-  // 優先度1: 支払い合計キーワード（最後の一致を採用）
-  const P1=[
-    /小\s*計\s*合\s*計/,    // 「小計合計」（先に評価）
-    /合\s*計/,              // 合計
-    /お\s*会\s*計/,         // お会計
-    /小\s*計/,              // 小計
-    /ご?\s*請\s*求\s*額?/,  // 請求額
-    /お\s*支\s*払[い合計]*/,// お支払い
-    /total(?!\s*tax)/i,    // TOTAL（TOTAL TAXは除外）
-    /amount\s*due/i,
-  ];
-  // 優先度2: 税込（P1で見つからない場合のみ）
-  const P2=[/税\s*込/,/incl\.?\s*tax/i];
-
-  let p1Res=[],p2Res=[];
-  lines.forEach((line,i)=>{
-    // P1キーワードの検索
-    for(let kw of P1){
-      let m=line.match(kw);
-      if(m){
-        // キーワード以降の同行から抽出
-        let amt=extractAfterKw(line.slice(m.index+m[0].length));
-        // 同行に金額がなければ直後の行（厳格モード）から抽出
-        if(amt==null&&i+1<lines.length) amt=extractNextLine(lines[i+1]);
-        if(amt!=null) p1Res.push(amt);
-        break; // 1行につき1キーワードのみ処理
-      }
-    }
-    // P2（P1と重複しない行のみ）
-    if(!P1.some(kw=>kw.test(line))){
-      for(let kw of P2){
-        let m=line.match(kw);
-        if(m){
-          let amt=extractAfterKw(line.slice(m.index+m[0].length));
-          if(amt==null&&i+1<lines.length) amt=extractNextLine(lines[i+1]);
-          if(amt!=null) p2Res.push(amt);
-          break;
-        }
-      }
-    }
-  });
-
-  // 最後の一致を採用（レシート末尾の合計が最終支払額）
-  // ※ キーワードのない行（バーコード・店舗コード・電話番号等）は一切参照しない
-  let amount=null;
-  if(p1Res.length) amount=p1Res[p1Res.length-1];
-  else if(p2Res.length) amount=p2Res[p2Res.length-1];
-  // --- 日付 ---
-  let date=null;
-  let now=new Date();
-  for(let line of lines){
-    let m=line.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-    if(m){date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
-    m=line.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
-    if(m){date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
-    m=line.match(/令和\s*(\d+)年\s*(\d{1,2})月\s*(\d{1,2})日/);
-    if(m){let y=2018+parseInt(m[1]);date=y+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
-    m=line.match(/R(\d+)[\.\/](\d{1,2})[\.\/](\d{1,2})/);
-    if(m){let y=2018+parseInt(m[1]);date=y+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
-    m=line.match(/(\d{2})[\/\.](\d{1,2})[\/\.](\d{1,2})/);
-    if(m){let y=2000+parseInt(m[1]);if(y<=now.getFullYear()+1){date=y+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}}
-  }
-  if(!date)date=fk(now.getFullYear(),now.getMonth(),now.getDate());
-  // --- お店名 ---
-  let store='';
-  for(let line of lines){
-    if(line.length>=2&&!/^[\d\s¥￥\-\/\.\*＊]+$/.test(line)&&!/^\d+$/.test(line)){
-      store=line.replace(/\s+/g,' ').trim().slice(0,30);break;
-    }
-  }
-  return {amount,date,store};
-}
-function showOcrResult(parsed,bodyEl,tgt){
-  let html='';
-  if(parsed.store) html+=`<div class="ocr-field"><span class="ocr-field-label">お店</span><span class="ocr-field-val">${parsed.store}</span></div>`;
-  if(parsed.amount) html+=`<div class="ocr-field"><span class="ocr-field-label">合計金額</span><span class="ocr-field-val" style="color:var(--r)">¥${parsed.amount.toLocaleString()}</span></div>`;
-  if(parsed.date){
-    let p=parsed.date.split('-');
-    html+=`<div class="ocr-field"><span class="ocr-field-label">日付</span><span class="ocr-field-val">${p[0]}年${parseInt(p[1])}月${parseInt(p[2])}日</span></div>`;
-  }
-  if(!parsed.amount&&!parsed.store){
-    bodyEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:12px">金額が読み取れませんでした。手動で入力してください。</div>';
-    return;
-  }
-  let j=JSON.stringify(parsed).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  html+=`<button class="ocr-apply-btn" onclick="applyOcrResult(${JSON.stringify(parsed)},'${tgt||'panel'}')">この内容をフォームに反映</button>`;
-  bodyEl.innerHTML=html;
-}
-function applyOcrResult(parsed,tgt){
-  let isModal=tgt==='modal';
-  let amtId=isModal?'ai2':'ai';
-  let noteId=isModal?'note2':'note';
-  let resultId=isModal?'ocr-result':'ocr-result-panel';
-  if(parsed.amount) document.getElementById(amtId).value=parsed.amount;
-  if(parsed.store) document.getElementById(noteId).value=parsed.store;
-  if(parsed.date){sel=parsed.date;updateDateHint();render();}
-  isModal?setType2('exp'):setType('exp');
-  document.getElementById(resultId).classList.remove('show');
-  ss('ok','レシートの内容をフォームに反映しました');
 }
 
 // ===== お店管理機能 =====
