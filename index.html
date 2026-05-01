@@ -489,6 +489,14 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">⚡️ よく使うパターン</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→⚡️よく使うパターンから収支の種類・カテゴリ・備考・金額（任意）のセットを登録できます。<br>
+            記録追加時の<strong>⚡️ボタン</strong>をタップするとパターン一覧が表示され、タップするだけでフォームに自動入力されます。<br>
+            金額を登録しない場合は選択後に金額欄へ自動フォーカスされます。パターンはクラウドに保存されます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">🏪 よく使うお店の登録</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             設定→🏪よく使うお店からお店名を登録できます。<br>
@@ -533,10 +541,11 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🎯 月間予算の設定</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🎯 月間予算</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
-            設定→🎯月間予算の設定からカテゴリごとに予算を設定できます。<br>
-            使用率がバーで表示され、超えると赤くなります。
+            設定→🎯月間予算のトグルをONにすると予算設定画面が開きます。カテゴリごとに予算を設定でき、使用率がバーで表示されます。<br>
+            ONにしている間は入力フォーム上部に「今月あと○円使えます」バナーを常時表示。<br>
+            日平均を超えるペースの場合は🟡警告、予算オーバーで🔴表示になります。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -791,6 +800,8 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 </div>
 
 <script>
+const APP_VERSION='1.5.0';
+const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
 const INC=['給与','副業','ボーナス','配当','その他収入'];
@@ -1025,6 +1036,30 @@ async function showApp(){
   applySeasonBg();
   await Promise.all([loadFixedItems(),loadStores(),loadUserPrefs(),loadBudgetPref(),loadPatterns()]);
   load();
+  checkVersion();
+}
+async function checkVersion(){
+  try{
+    let r=await fetch(VERSION_URL+'?t='+Date.now());
+    if(!r.ok)return;
+    let d=await r.json();
+    if(d.version&&d.version!==APP_VERSION){
+      showVersionBanner(d.version);
+    }
+  }catch(e){}
+}
+function showVersionBanner(newVer){
+  let existing=document.getElementById('version-banner');
+  if(existing)existing.remove();
+  let b=document.createElement('div');
+  b.id='version-banner';
+  b.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:2000;background:#1D9E75;color:#fff;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;box-shadow:0 -2px 12px rgba(0,0,0,0.15)';
+  b.innerHTML=`<span>🆕 アップデートがあります (v${newVer})</span>`+
+    `<div style="display:flex;gap:8px">`+
+    `<button onclick="location.reload(true)" style="background:#fff;color:var(--g,#1D9E75);border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">更新</button>`+
+    `<button onclick="document.getElementById('version-banner').remove()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">後で</button>`+
+    `</div>`;
+  document.body.appendChild(b);
 }
 
 let weeklyEnabled=false;
