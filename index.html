@@ -157,6 +157,13 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .weekly-inc{font-size:12px;color:var(--g);font-weight:600;text-align:right}
 .weekly-exp{font-size:12px;color:var(--r);font-weight:600;text-align:right}
 .weekly-bal{font-size:12px;font-weight:700;text-align:right}
+/* トグルスイッチ */
+.toggle-switch{position:relative;width:42px;height:24px;flex-shrink:0;display:inline-block}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:#ccc;border-radius:24px;transition:background 0.2s;cursor:pointer}
+.toggle-track::after{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.25)}
+.toggle-switch input:checked+.toggle-track{background:var(--g)}
+.toggle-switch input:checked+.toggle-track::after{transform:translateX(18px)}
 /* お店ピッカー */
 .store-picker-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1100}
 .store-picker-overlay.show{display:block}
@@ -282,9 +289,14 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <div class="settings-item" onclick="openStoreModal();closeSettings()">
           <span class="settings-icon">🏪</span>よく使うお店
         </div>
-        <div class="settings-item" onclick="showWeeklySummaryModal();closeSettings()">
-          <span class="settings-icon">📅</span>週次サマリー
-        </div>
+        <label class="settings-item" for="weekly-toggle" style="cursor:pointer">
+          <span class="settings-icon">📅</span>
+          <span style="flex:1">週次サマリー</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="weekly-toggle" onchange="toggleWeekly()">
+            <div class="toggle-track"></div>
+          </div>
+        </label>
         <div class="settings-item" onclick="showGuide();closeSettings()">
           <span class="settings-icon">📖</span>使い方ガイド
         </div>
@@ -368,7 +380,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="annual-section">
       <div class="annual-header">
         <div class="annual-title">年間収支</div>
-        <div class="annual-year" id="annual-year"></div>
+        <div class="annual-year" id="annual-year" onclick="toggleYearPicker()" style="cursor:pointer;padding:3px 8px;border-radius:8px;border:1px solid var(--border)"></div>
       </div>
       <table class="annual-table">
         <thead><tr><th>月</th><th>収入</th><th>支出</th><th>支出率</th><th>残高</th></tr></thead>
@@ -468,13 +480,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📊 週次サマリー</div>
-          <div style="font-size:13px;color:#555;line-height:1.8">
-            画面下部の<strong>週次サマリー</strong>セクションで、1週間ごとの収入・支出・残高を確認できます。<br>
-            今週の行は青くハイライトされます。設定→📅週次サマリーからも確認できます。
-          </div>
-        </div>
-        <div style="background:#f0faf5;border-radius:12px;padding:12px">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 記録の確認・編集</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             記録がある日（●マーク）をタップするとその日の記録一覧が表示されます。<br>
@@ -482,10 +487,25 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📈 グラフ・内訳の確認</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📈 カテゴリ別内訳</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
-            カテゴリ別の円グラフをタップすると備考別の詳細が確認できます。<br>
-            月別推移グラフで収入・支出の傾向も一目でわかります。
+            収入・支出それぞれのドーナツグラフとカテゴリ別リストで内訳を確認できます。<br>
+            カテゴリをタップすると備考別の詳細が表示されます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📊 年間収支</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            月ごとの収入・支出・支出率・残高を一覧で確認できます。<br>
+            収入・支出の数字をタップするとその月のカテゴリ別内訳が表示されます。<br>
+            右上の年ラベルをタップすると▲▼で年を変更できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 週次サマリー</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→📅週次サマリーのトグルをONにすると、1週間ごとの収入・支出・残高を表示します。<br>
+            今週の行は青くハイライトされます。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -512,7 +532,8 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">💡 便利な操作</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             <strong>左右スワイプ</strong>で月を切り替えられます。<br>
-            カレンダーの数字の左右にある <strong>‹ ›</strong> でも月切り替えができます。<br>
+            <strong>月ラベル</strong>をタップすると1〜12月のグリッドから選択できます。<br>
+            <strong>年ラベル</strong>をタップすると▲▼で年を変更できます。<br>
             今日の日付は青枠でハイライトされています。
           </div>
         </div>
@@ -978,8 +999,40 @@ async function showApp(){
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
-  await Promise.all([loadFixedItems(),loadStores()]);
+  await Promise.all([loadFixedItems(),loadStores(),loadUserPrefs()]);
   load();
+}
+
+let weeklyEnabled=false;
+async function loadUserPrefs(){
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/user_settings?user_id=eq.'+userId+'&select=weekly_enabled',{headers:H()});
+    if(r.ok){
+      let d=await r.json();
+      weeklyEnabled=d.length?(d[0].weekly_enabled??false):false;
+    }
+  }catch(e){weeklyEnabled=false;}
+  applyWeeklyVisibility();
+}
+async function persistUserPrefs(){
+  try{
+    await fetchWithRefresh(SU+'/rest/v1/user_settings',{
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({user_id:userId,weekly_enabled:weeklyEnabled,updated_at:new Date().toISOString()})
+    });
+  }catch(e){}
+}
+function toggleWeekly(){
+  weeklyEnabled=document.getElementById('weekly-toggle').checked;
+  applyWeeklyVisibility();
+  persistUserPrefs();
+}
+function applyWeeklyVisibility(){
+  let sec=document.getElementById('weekly-section');
+  if(sec)sec.style.display=weeklyEnabled?'':'none';
+  let tog=document.getElementById('weekly-toggle');
+  if(tog)tog.checked=weeklyEnabled;
 }
 
 function dedup(arr){
@@ -2205,6 +2258,7 @@ function render(){
   renderBarChart();
   renderTrendChart();
   renderWeeklySummary();
+  applyWeeklyVisibility();
   let list=document.getElementById('elist');
   if(!sel){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
   let de=data.filter(e=>e.date===sel);
