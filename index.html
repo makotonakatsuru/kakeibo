@@ -9,6 +9,13 @@
   <meta name="apple-mobile-web-app-title" content="家計簿">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>家計簿</title>
+<script>
+(function(){
+  var s=localStorage.getItem('kb_theme');
+  var dark=s==='dark'||(s===null&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if(dark)document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#f5f5f5;color:#222}
@@ -194,6 +201,79 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .toast-icon{font-size:18px;flex-shrink:0}.toast-msg{flex:1}
 #offline-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#E24B4A;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:500;letter-spacing:0.02em}
 #offline-banner.show{display:block}
+/* ダークモード */
+:root{--text:#222;--text2:#444;--text3:#888;--text4:#aaa;--text5:#555}
+html[data-theme="dark"]{
+  --g:#1D9E75;--gl:#0d2b22;--gd:#4ecfa0;
+  --r:#E24B4A;--rl:#2b1010;--rd:#ff7070;
+  --b:#378ADD;--bl:#0d1f35;
+  --border:#383838;--bg:#1e1e1e;--bg2:#2a2a2a;
+  --text:#e2e2e2;--text2:#cccccc;--text3:#888;--text4:#666;--text5:#aaa;
+}
+html[data-theme="dark"] body{background:#111;color:#e2e2e2}
+html[data-theme="dark"] .wrap{background:#111}
+html[data-theme="dark"] #auth-screen{background:#111}
+html[data-theme="dark"] .auth-field input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] input[type=number],
+html[data-theme="dark"] input[type=text],
+html[data-theme="dark"] input[type=email],
+html[data-theme="dark"] input[type=password]{background:var(--bg2);color:#e2e2e2;border-color:var(--border)}
+html[data-theme="dark"] .auth-tab{color:#888}
+html[data-theme="dark"] .settings-menu{background:var(--bg);box-shadow:0 2px 12px rgba(0,0,0,0.5)}
+html[data-theme="dark"] .settings-item{color:#ddd;border-bottom-color:var(--border)}
+html[data-theme="dark"] .settings-item:hover{background:var(--bg2)}
+html[data-theme="dark"] .modal{background:var(--bg)}
+html[data-theme="dark"] .modal-header{border-bottom-color:var(--border)}
+html[data-theme="dark"] .modal-title{color:#e2e2e2}
+html[data-theme="dark"] .modal-total{border-top-color:var(--border)}
+html[data-theme="dark"] .modal-total-label{color:#888}
+html[data-theme="dark"] .modal-item{border-bottom-color:var(--border)}
+html[data-theme="dark"] .modal-date{color:#777}
+html[data-theme="dark"] .modal-note{color:#666}
+html[data-theme="dark"] .pattern-picker-sheet{background:var(--bg)}
+html[data-theme="dark"] .store-picker{background:var(--bg)}
+html[data-theme="dark"] .store-picker-hd,.store-picker-title{color:#e2e2e2}
+html[data-theme="dark"] .store-picker-item{border-bottom-color:var(--border);color:#ddd}
+html[data-theme="dark"] .store-picker-item:active{background:var(--bg2)}
+html[data-theme="dark"] #year-picker-card,html[data-theme="dark"] #month-picker-card{background:var(--bg)!important;box-shadow:0 6px 24px rgba(0,0,0,0.5)!important}
+html[data-theme="dark"] #year-picker-card button{color:#aaa!important}
+html[data-theme="dark"] #year-picker-val{color:#e2e2e2!important}
+html[data-theme="dark"] #sumrow-bar{background:#111!important;border-bottom-color:var(--border)!important}
+html[data-theme="dark"] #sumrow-bar>div{background:var(--bg)!important;box-shadow:0 1px 4px rgba(0,0,0,0.4)!important}
+html[data-theme="dark"] #sumrow-bar>div>div:first-child{color:#888!important}
+html[data-theme="dark"] #note{background:var(--bg2)!important;color:#e2e2e2!important;border-color:var(--border)!important}
+html[data-theme="dark"] .formrow>button:not(.ab):not(#ab){background:var(--bg2)!important;border-color:var(--border)!important}
+html[data-theme="dark"] .ph h3,.chart-section-title,.annual-title{color:#ccc}
+html[data-theme="dark"] .sc .sl{color:#888}
+html[data-theme="dark"] .cn{color:#aaa}
+html[data-theme="dark"] .em{color:#666}
+html[data-theme="dark"] .leg-label,.leg-amt{color:#ddd}
+html[data-theme="dark"] .leg-bar-wrap{background:#444}
+html[data-theme="dark"] .no-data{color:#555}
+html[data-theme="dark"] .annual-table th{color:#777;border-bottom-color:var(--border)}
+html[data-theme="dark"] .annual-table td{border-bottom-color:var(--border)}
+html[data-theme="dark"] .annual-table td:first-child{color:#aaa}
+html[data-theme="dark"] .annual-table tr.current-month td{background:#2a2600}
+html[data-theme="dark"] .annual-table tr.current-month td:first-child{color:var(--g)}
+html[data-theme="dark"] .annual-table tr.total-row td{background:var(--bg2)}
+html[data-theme="dark"] .annual-table tr.future td{color:#555}
+html[data-theme="dark"] .annual-table tr.bal-plus-row td{background:rgba(29,158,117,0.10)}
+html[data-theme="dark"] .annual-table tr.bal-minus-row td{background:rgba(226,75,74,0.10)}
+html[data-theme="dark"] .foot{color:#666;border-top-color:var(--border)}
+html[data-theme="dark"] .chart-box-title{border-bottom-color:var(--border)}
+html[data-theme="dark"] .leg-item{border-bottom-color:var(--border)}
+html[data-theme="dark"] .weekly-row{border-bottom-color:var(--border)}
+html[data-theme="dark"] .weekly-header{border-bottom-color:var(--border)}
+html[data-theme="dark"] .weekly-label{color:#aaa}
+html[data-theme="dark"] .pat-item{border-bottom-color:var(--border)}
+html[data-theme="dark"] .db{color:#666}
+html[data-theme="dark"] .annual-year{border-color:var(--border);color:#888}
+html[data-theme="dark"] #budget-section>div>button{background:var(--bg)!important;color:#ddd!important;border-color:var(--border)!important}
+html[data-theme="dark"] #guest-guide [style*="background:#f0faf5"]{background:#0d2b22!important}
+html[data-theme="dark"] #guest-guide [style*="background:#f0faf5"] div:last-child div:last-child{color:#888!important}
+html[data-theme="dark"] .modal-body [style*="background:#fff"],[data-theme="dark"] .modal-body [style*="background: #fff"]{background:var(--bg2)!important}
+html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!important}
 </style>
 </head>
 <body>
@@ -312,6 +392,14 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <span style="flex:1">週次サマリー</span>
           <div class="toggle-switch">
             <input type="checkbox" id="weekly-toggle" onchange="toggleWeekly()">
+            <div class="toggle-track"></div>
+          </div>
+        </label>
+        <label class="settings-item" for="dark-toggle" style="cursor:pointer">
+          <span class="settings-icon">🌙</span>
+          <span style="flex:1">ダークモード</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="dark-toggle" onchange="toggleDarkMode()">
             <div class="toggle-track"></div>
           </div>
         </label>
@@ -1072,6 +1160,7 @@ async function showApp(){
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
+  initDarkMode();
   await Promise.all([loadFixedItems(),loadStores(),loadUserPrefs(),loadBudgetPref(),loadPatterns()]);
   load();
   checkVersion();
@@ -1130,6 +1219,22 @@ function applyWeeklyVisibility(){
   if(sec)sec.style.display=weeklyEnabled?'':'none';
   let tog=document.getElementById('weekly-toggle');
   if(tog)tog.checked=weeklyEnabled;
+}
+function initDarkMode(){
+  let saved=localStorage.getItem('kb_theme');
+  let prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  let dark=saved==='dark'||(saved===null&&prefersDark);
+  applyDarkMode(dark);
+}
+function applyDarkMode(dark){
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  let tog=document.getElementById('dark-toggle');
+  if(tog)tog.checked=dark;
+}
+function toggleDarkMode(){
+  let dark=document.getElementById('dark-toggle').checked;
+  applyDarkMode(dark);
+  localStorage.setItem('kb_theme',dark?'dark':'light');
 }
 
 // ===== 月間予算 ON/OFF =====
@@ -2806,8 +2911,8 @@ function toggleMonthPicker(){
     grid.innerHTML=Array.from({length:12},(_,i)=>`
       <button onclick="selectPickerMonth(${i});event.stopPropagation()"
         style="padding:10px 4px;border:1px solid ${i===vm?'var(--g)':'var(--border)'};
-               border-radius:8px;background:${i===vm?'var(--g)':'#fff'};
-               color:${i===vm?'#fff':'#333'};font-size:14px;cursor:pointer;
+               border-radius:8px;background:${i===vm?'var(--g)':'var(--bg2)'};
+               color:${i===vm?'#fff':'var(--text)'};font-size:14px;cursor:pointer;
                font-weight:${i===vm?'700':'400'}">${i+1}月</button>
     `).join('');
     document.getElementById('month-picker-overlay').style.display='block';
@@ -2822,6 +2927,11 @@ function selectPickerMonth(m){
 function closeNavPickers(){
   ['year-picker-overlay','year-picker-card','month-picker-overlay','month-picker-card']
     .forEach(id=>{let el=document.getElementById(id);if(el)el.style.display='none';});
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
 }
 </script>
 
