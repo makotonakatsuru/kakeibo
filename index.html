@@ -224,9 +224,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <!-- 1行目：年 / 名前 / 設定 -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
         <div style="display:flex;align-items:center;gap:3px">
-          <button id="prev-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.5);padding:0">◀</button>
-          <span id="ylbl" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600"></span>
-          <button id="next-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.5);padding:0">▶</button>
+          <span id="ylbl" onclick="toggleYearPicker()" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600;cursor:pointer;padding:3px 7px;border-radius:8px;border:1px solid rgba(255,255,255,0.3)"></span>
         </div>
         <span id="user-name-display" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600"></span>
         <button class="settings-btn" onclick="toggleSettings()" title="設定">⚙️</button>
@@ -234,7 +232,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <!-- 2行目：月切替（中央） -->
       <div style="display:flex;align-items:center;justify-content:center;gap:8px">
         <button id="prev" style="border:none;background:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.7);padding:0">‹</button>
-        <span id="mlbl" style="font-size:22px;font-weight:700;color:#fff;min-width:60px;text-align:center;line-height:1"></span>
+        <span id="mlbl" onclick="toggleMonthPicker()" style="font-size:22px;font-weight:700;color:#fff;min-width:60px;text-align:center;line-height:1;cursor:pointer;padding:3px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.3)"></span>
         <button id="next" style="border:none;background:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.7);padding:0">›</button>
       </div>
       <!-- 同期状態 -->
@@ -2392,8 +2390,6 @@ function showWeeklySummaryModal(){
 
 document.getElementById('prev').onclick=function(){vm--;if(vm<0){vm=11;vy--;}sel=null;updateDateHint();load()};
 document.getElementById('next').onclick=function(){vm++;if(vm>11){vm=0;vy++;}sel=null;updateDateHint();load()};
-document.getElementById('prev-year').onclick=function(){vy--;sel=null;updateDateHint();load()};
-document.getElementById('next-year').onclick=function(){vy++;sel=null;updateDateHint();load()};
 
 setType('inc');
 tryAutoLogin();
@@ -2435,7 +2431,65 @@ tryAutoLogin();
     }
   },100);
   applyFixedItems();
+
 })();
+
+function toggleYearPicker(){
+  let card=document.getElementById('year-picker-card');
+  let isOpen=card.style.display!=='none';
+  closeNavPickers();
+  if(!isOpen){
+    document.getElementById('year-picker-val').textContent=vy+'年';
+    document.getElementById('year-picker-overlay').style.display='block';
+    card.style.display='block';
+  }
+}
+function stepYear(d){
+  vy+=d;sel=null;
+  document.getElementById('year-picker-val').textContent=vy+'年';
+  updateDateHint();load();
+}
+function toggleMonthPicker(){
+  let card=document.getElementById('month-picker-card');
+  let isOpen=card.style.display!=='none';
+  closeNavPickers();
+  if(!isOpen){
+    let grid=document.getElementById('month-picker-grid');
+    grid.innerHTML=Array.from({length:12},(_,i)=>`
+      <button onclick="selectPickerMonth(${i});event.stopPropagation()"
+        style="padding:10px 4px;border:1px solid ${i===vm?'var(--g)':'var(--border)'};
+               border-radius:8px;background:${i===vm?'var(--g)':'#fff'};
+               color:${i===vm?'#fff':'#333'};font-size:14px;cursor:pointer;
+               font-weight:${i===vm?'700':'400'}">${i+1}月</button>
+    `).join('');
+    document.getElementById('month-picker-overlay').style.display='block';
+    card.style.display='block';
+  }
+}
+function selectPickerMonth(m){
+  vm=m;sel=null;
+  closeNavPickers();
+  updateDateHint();load();
+}
+function closeNavPickers(){
+  ['year-picker-overlay','year-picker-card','month-picker-overlay','month-picker-card']
+    .forEach(id=>{let el=document.getElementById(id);if(el)el.style.display='none';});
+}
 </script>
+
+<!-- 年ピッカー -->
+<div id="year-picker-overlay" style="display:none;position:fixed;inset:0;z-index:150" onclick="closeNavPickers()"></div>
+<div id="year-picker-card" style="display:none;position:fixed;top:calc(var(--topbar-h,72px) + 6px);left:14px;z-index:151;background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,0.18);padding:4px 20px 8px;text-align:center;min-width:130px" onclick="event.stopPropagation()">
+  <button onclick="stepYear(1)" style="display:block;width:100%;background:none;border:none;font-size:22px;cursor:pointer;color:#444;padding:6px 0;line-height:1">▲</button>
+  <div id="year-picker-val" style="font-size:22px;font-weight:700;color:#222;padding:2px 0;line-height:1.3"></div>
+  <button onclick="stepYear(-1)" style="display:block;width:100%;background:none;border:none;font-size:22px;cursor:pointer;color:#444;padding:6px 0;line-height:1">▼</button>
+</div>
+
+<!-- 月ピッカー -->
+<div id="month-picker-overlay" style="display:none;position:fixed;inset:0;z-index:150" onclick="closeNavPickers()"></div>
+<div id="month-picker-card" style="display:none;position:fixed;top:calc(var(--topbar-h,72px) + 6px);left:50%;transform:translateX(-50%);z-index:151;background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,0.18);padding:14px;width:min(300px,90vw)" onclick="event.stopPropagation()">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px" id="month-picker-grid"></div>
+</div>
+
 </body>
 </html>
