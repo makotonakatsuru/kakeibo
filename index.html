@@ -319,6 +319,18 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="panel">
       <div class="ph" style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;display:none">記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;display:none"></span></div>
       <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
+      <!-- OCR（メインフォーム） -->
+      <label for="ocr-file-panel" class="ocr-btn">
+        <span>📷</span>レシートを撮影して自動入力
+      </label>
+      <input type="file" id="ocr-file-panel" accept="image/*" style="display:none" onchange="handleOcrFile(event,'panel')">
+      <div class="ocr-result" id="ocr-result-panel">
+        <div class="ocr-result-title">
+          <span>📋 読み取り結果</span>
+          <button onclick="document.getElementById('ocr-result-panel').classList.remove('show')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:0">✕</button>
+        </div>
+        <div id="ocr-result-body-panel"></div>
+      </div>
       <div class="form">
         <div class="formrow">
           <div class="tt">
@@ -647,10 +659,10 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     </div>
     <div class="modal-body" style="padding:16px">
       <!-- OCR -->
-      <button class="ocr-btn" onclick="document.getElementById('ocr-file').click()">
+      <label for="ocr-file-modal" class="ocr-btn">
         <span>📷</span>レシートを撮影して自動入力
-      </button>
-      <input type="file" id="ocr-file" accept="image/*" capture="environment" style="display:none" onchange="handleOcrFile(event)">
+      </label>
+      <input type="file" id="ocr-file-modal" accept="image/*" style="display:none" onchange="handleOcrFile(event,'modal')">
       <div class="ocr-result" id="ocr-result">
         <div class="ocr-result-title">
           <span>📋 読み取り結果</span>
@@ -2194,12 +2206,15 @@ function render(){
 }
 
 // ===== OCR レシート読み取り =====
-async function handleOcrFile(e){
+async function handleOcrFile(e, target){
   let file=e.target.files[0];
   e.target.value='';
   if(!file)return;
-  let resultEl=document.getElementById('ocr-result');
-  let bodyEl=document.getElementById('ocr-result-body');
+  let tgt=target||'panel';
+  let resultId=tgt==='modal'?'ocr-result':'ocr-result-panel';
+  let bodyId=tgt==='modal'?'ocr-result-body':'ocr-result-body-panel';
+  let resultEl=document.getElementById(resultId);
+  let bodyEl=document.getElementById(bodyId);
   resultEl.classList.add('show');
   bodyEl.innerHTML='<div class="ocr-loading"><div class="ocr-spin"></div>読み取り中...</div>';
   try{
@@ -2207,7 +2222,7 @@ async function handleOcrFile(e){
     let text=await callVisionAPI(b64);
     if(!text){bodyEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:12px">テキストが読み取れませんでした</div>';return;}
     let parsed=parseReceiptText(text);
-    showOcrResult(parsed,bodyEl);
+    showOcrResult(parsed,bodyEl,tgt);
   }catch(err){
     bodyEl.innerHTML='<div style="color:var(--r);font-size:13px;padding:12px">⚠️ '+err.message+'</div>';
   }
@@ -2330,7 +2345,7 @@ function parseReceiptText(text){
   }
   return {amount,date,store};
 }
-function showOcrResult(parsed,bodyEl){
+function showOcrResult(parsed,bodyEl,tgt){
   let html='';
   if(parsed.store) html+=`<div class="ocr-field"><span class="ocr-field-label">お店</span><span class="ocr-field-val">${parsed.store}</span></div>`;
   if(parsed.amount) html+=`<div class="ocr-field"><span class="ocr-field-label">合計金額</span><span class="ocr-field-val" style="color:var(--r)">¥${parsed.amount.toLocaleString()}</span></div>`;
@@ -2342,16 +2357,20 @@ function showOcrResult(parsed,bodyEl){
     bodyEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:12px">金額が読み取れませんでした。手動で入力してください。</div>';
     return;
   }
-  let safeJson=JSON.stringify(parsed).replace(/"/g,'&quot;');
-  html+=`<button class="ocr-apply-btn" onclick='applyOcrResult(${JSON.stringify(parsed)})'>この内容をフォームに反映</button>`;
+  let j=JSON.stringify(parsed).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  html+=`<button class="ocr-apply-btn" onclick="applyOcrResult(${JSON.stringify(parsed)},'${tgt||'panel'}')">この内容をフォームに反映</button>`;
   bodyEl.innerHTML=html;
 }
-function applyOcrResult(parsed){
-  if(parsed.amount) document.getElementById('ai2').value=parsed.amount;
-  if(parsed.store) document.getElementById('note2').value=parsed.store;
+function applyOcrResult(parsed,tgt){
+  let isModal=tgt==='modal';
+  let amtId=isModal?'ai2':'ai';
+  let noteId=isModal?'note2':'note';
+  let resultId=isModal?'ocr-result':'ocr-result-panel';
+  if(parsed.amount) document.getElementById(amtId).value=parsed.amount;
+  if(parsed.store) document.getElementById(noteId).value=parsed.store;
   if(parsed.date){sel=parsed.date;updateDateHint();render();}
-  setType2('exp');
-  document.getElementById('ocr-result').classList.remove('show');
+  isModal?setType2('exp'):setType('exp');
+  document.getElementById(resultId).classList.remove('show');
   ss('ok','レシートの内容をフォームに反映しました');
 }
 
