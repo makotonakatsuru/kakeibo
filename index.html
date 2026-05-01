@@ -972,11 +972,12 @@ function applySeasonBg(){
   };
   img.src=url;
 }
-function showApp(){
+async function showApp(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
+  await loadFixedItems();
   load();
 }
 
@@ -1322,11 +1323,43 @@ function setFixedType(t){
   document.getElementById('fixed-exp-btn').style.color=t==='exp'?'#fff':'';
   document.getElementById('fixed-category').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
 }
+let fixedItemsCache=null;
+async function loadFixedItems(){
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/user_settings?user_id=eq.'+userId+'&select=fixed_items',{headers:H()});
+    if(r.ok){
+      let d=await r.json();
+      if(d.length){
+        fixedItemsCache=d[0].fixed_items||[];
+      }else{
+        // 初回: localStorageからデータを移行してSupabaseに保存
+        let local=JSON.parse(localStorage.getItem('fixedItems_'+userId)||'[]');
+        fixedItemsCache=local;
+        await persistFixedItems(local);
+      }
+    }else{
+      // テーブル未作成などのフォールバック
+      fixedItemsCache=JSON.parse(localStorage.getItem('fixedItems_'+userId)||'[]');
+    }
+  }catch(e){
+    fixedItemsCache=JSON.parse(localStorage.getItem('fixedItems_'+userId)||'[]');
+  }
+}
+async function persistFixedItems(items){
+  try{
+    await fetchWithRefresh(SU+'/rest/v1/user_settings',{
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({user_id:userId,fixed_items:items,updated_at:new Date().toISOString()})
+    });
+  }catch(e){}
+}
 function getFixedItems(){
-  return JSON.parse(localStorage.getItem('fixedItems_'+userId)||'[]');
+  return fixedItemsCache||[];
 }
 function saveFixedItems(items){
-  localStorage.setItem('fixedItems_'+userId,JSON.stringify(items));
+  fixedItemsCache=items;
+  persistFixedItems(items);
 }
 function renderFixedList(){
   let items=getFixedItems();
