@@ -1170,7 +1170,7 @@ async function checkVersion(){
     let r=await fetch(VERSION_URL+'?t='+Date.now());
     if(!r.ok)return;
     let d=await r.json();
-    if(d.version&&d.version!==APP_VERSION){
+    if(d.version&&d.version!==APP_VERSION&&d.version!==localStorage.getItem('kb_ver_ack')){
       showVersionBanner(d.version);
     }
   }catch(e){}
@@ -1183,7 +1183,7 @@ function showVersionBanner(newVer){
   b.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:2000;background:#1D9E75;color:#fff;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;box-shadow:0 -2px 12px rgba(0,0,0,0.15)';
   b.innerHTML=`<span>🆕 アップデートがあります (v${newVer})</span>`+
     `<div style="display:flex;gap:8px">`+
-    `<button onclick="location.reload(true)" style="background:#fff;color:var(--g,#1D9E75);border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">更新</button>`+
+    `<button onclick="localStorage.setItem('kb_ver_ack','${newVer}');location.reload()" style="background:#fff;color:var(--g,#1D9E75);border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">更新</button>`+
     `<button onclick="document.getElementById('version-banner').remove()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit">後で</button>`+
     `</div>`;
   document.body.appendChild(b);
