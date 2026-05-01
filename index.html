@@ -290,6 +290,9 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <span class="settings-icon">📥</span>CSVインポート
         </div>
         <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        <div class="settings-item" onclick="openVisionKeyModal();closeSettings()">
+          <span class="settings-icon">📷</span>レシートOCR APIキー
+        </div>
         <div class="settings-item" onclick="openStoreModal();closeSettings()">
           <span class="settings-icon">🏪</span>よく使うお店
         </div>
@@ -712,6 +715,38 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     </div>
   </div>
 </div>
+<!-- Vision APIキー設定モーダル -->
+<div class="modal-overlay" id="visionkey-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📷 レシートOCR APIキー設定</div>
+      <button class="modal-close" onclick="document.getElementById('visionkey-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="visionkey-status" style="margin-bottom:14px;padding:10px 12px;border-radius:10px;font-size:13px"></div>
+      <div style="margin-bottom:8px">
+        <div style="font-size:12px;color:#888;margin-bottom:5px">Google Vision APIキー</div>
+        <div style="display:flex;gap:8px">
+          <input type="password" id="visionkey-input" placeholder="AIza..." autocomplete="off"
+            style="flex:1;font-size:15px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:monospace">
+          <button onclick="toggleVisionKeyVisible()" id="visionkey-eye"
+            style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:16px;cursor:pointer;flex-shrink:0">👁</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#aaa;line-height:1.7;margin-bottom:14px">
+        Google Cloud Console でVision APIを有効化し、<br>
+        「認証情報」→「APIキーを作成」で取得できます。<br>
+        キーはこの端末のみに保存され、外部には送信されません。
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="saveVisionKey()"
+          style="flex:2;padding:11px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">保存</button>
+        <button onclick="clearVisionKey()"
+          style="flex:1;padding:11px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:14px;color:var(--r);cursor:pointer">削除</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- お店管理モーダル -->
 <div class="modal-overlay" id="store-modal" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal">
@@ -771,7 +806,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 </div>
 
 <script>
-const GVISION_KEY='ここにコピーしたキーを貼り付け'; // Google Vision APIキー
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
 const INC=['給与','副業','ボーナス','配当','その他収入'];
@@ -2199,11 +2233,47 @@ function fileToBase64(file){
     reader.readAsDataURL(file);
   });
 }
-async function callVisionAPI(b64){
-  if(!GVISION_KEY||GVISION_KEY.includes('ここに')||GVISION_KEY.startsWith('YOUR')){
-    throw new Error('Google Vision APIキーが未設定です。コード内のGVISION_KEYを実際のキーに置き換えてください');
+function getVisionKey(){return localStorage.getItem('vision_api_key')||'';}
+function openVisionKeyModal(){
+  let key=getVisionKey();
+  let statusEl=document.getElementById('visionkey-status');
+  if(key){
+    statusEl.style.background='#f0faf5';statusEl.style.color='var(--gd)';
+    statusEl.textContent='✅ APIキーが設定済みです（'+key.slice(0,8)+'…）';
+    document.getElementById('visionkey-input').value=key;
+  }else{
+    statusEl.style.background='#fff8e1';statusEl.style.color='#b26a00';
+    statusEl.textContent='⚠️ APIキーが未設定です。レシートOCRは使えません。';
+    document.getElementById('visionkey-input').value='';
   }
-  let res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+GVISION_KEY,{
+  document.getElementById('visionkey-modal').classList.add('show');
+}
+function toggleVisionKeyVisible(){
+  let inp=document.getElementById('visionkey-input');
+  let btn=document.getElementById('visionkey-eye');
+  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
+  else{inp.type='password';btn.textContent='👁';}
+}
+function saveVisionKey(){
+  let key=document.getElementById('visionkey-input').value.trim();
+  if(!key){alert('APIキーを入力してください');return;}
+  localStorage.setItem('vision_api_key',key);
+  document.getElementById('visionkey-modal').classList.remove('show');
+  ss('ok','APIキーを保存しました');
+}
+function clearVisionKey(){
+  if(!confirm('APIキーを削除しますか？'))return;
+  localStorage.removeItem('vision_api_key');
+  document.getElementById('visionkey-input').value='';
+  document.getElementById('visionkey-modal').classList.remove('show');
+  ss('ok','APIキーを削除しました');
+}
+async function callVisionAPI(b64){
+  let key=getVisionKey();
+  if(!key){
+    throw new Error('APIキーが未設定です。設定→📷レシートOCR APIキー から登録してください');
+  }
+  let res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+key,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({requests:[{image:{content:b64},features:[{type:'TEXT_DETECTION',maxResults:1}]}]})
   });
