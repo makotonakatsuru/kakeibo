@@ -19,17 +19,14 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   // Supabase APIはキャッシュしない
   if (url.hostname.includes('supabase')) return;
-  // GETリクエストのみ: キャッシュ優先、失敗時はネットワーク
+  // GETリクエストのみ: ネットワーク優先、失敗時はキャッシュにフォールバック
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(res => {
-        if (res.ok) {
-          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+    fetch(e.request).then(res => {
+      if (res.ok) {
+        caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
