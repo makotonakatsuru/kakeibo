@@ -144,6 +144,23 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .modal-total{padding:12px 16px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .modal-total-label{font-size:13px;color:#888}
 .modal-total-val{font-size:16px;font-weight:700}
+/* 週次サマリー */
+.weekly-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2px;padding:0 0 6px;font-size:11px;color:#888;border-bottom:2px solid var(--border);margin-bottom:4px}
+.weekly-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2px;padding:8px 4px;border-bottom:1px solid var(--border);align-items:center}
+.weekly-row.cur-week{background:var(--bl);border-radius:8px;border-bottom:none;margin:2px 0}
+.weekly-label{font-size:12px;color:#555;font-weight:500}
+.weekly-inc{font-size:12px;color:var(--g);font-weight:600;text-align:right}
+.weekly-exp{font-size:12px;color:var(--r);font-weight:600;text-align:right}
+.weekly-bal{font-size:12px;font-weight:700;text-align:right}
+/* お店ピッカー */
+.store-picker-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1100}
+.store-picker-overlay.show{display:block}
+.store-picker{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:16px 16px 32px;max-height:65vh;overflow-y:auto}
+.store-picker-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.store-picker-title{font-size:15px;font-weight:700;color:#222}
+.store-picker-item{padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.store-picker-item:active{background:var(--bg2)}
+.store-picker-empty{font-size:13px;color:#aaa;text-align:center;padding:20px 0}
 </style>
 </head>
 <body>
@@ -259,6 +276,12 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <span class="settings-icon">📥</span>CSVインポート
         </div>
         <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        <div class="settings-item" onclick="openStoreModal();closeSettings()">
+          <span class="settings-icon">🏪</span>よく使うお店
+        </div>
+        <div class="settings-item" onclick="showWeeklySummaryModal();closeSettings()">
+          <span class="settings-icon">📅</span>週次サマリー
+        </div>
         <div class="settings-item" onclick="showGuide();closeSettings()">
           <span class="settings-icon">📖</span>使い方ガイド
         </div>
@@ -292,7 +315,8 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <button class="ab" id="ab" onclick="addE()">追加</button>
         </div>
         <div class="formrow">
-          <input type="text" id="note" list="note-history" placeholder="備考" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
+          <input type="text" id="note" list="note-history" placeholder="備考（お店名など）" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
+          <button type="button" onclick="openStorePicker('note')" style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">🏪</button>
           <datalist id="note-history"></datalist>
         </div>
       </div>
@@ -337,6 +361,16 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <div class="chart-section">
       <div class="chart-section-title">月別推移（収入 vs 支出）</div>
       <canvas id="trend-chart" height="160" style="width:100%"></canvas>
+    </div>
+    <!-- 週次サマリー -->
+    <div class="chart-section" id="weekly-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="chart-section-title" style="margin:0">週次サマリー</div>
+      </div>
+      <div class="weekly-header">
+        <span>期間</span><span style="text-align:right">収入</span><span style="text-align:right">支出</span><span style="text-align:right">残高</span>
+      </div>
+      <div id="weekly-summary"></div>
     </div>
     <div class="annual-section">
       <div class="annual-header">
@@ -409,13 +443,28 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <div class="modal-title">📖 使い方ガイド</div>
       <button class="modal-close" onclick="document.getElementById('guide-modal').classList.remove('show')">✕</button>
     </div>
-    <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto">
+    <div class="modal-body" style="padding:16px;max-height:75vh;overflow-y:auto">
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 記録の追加</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             カレンダーの日付をタップすると上部の入力フォームに移動します。<br>
             収入・支出を選んでカテゴリ・金額・備考を入力して<strong>「追加」</strong>ボタンを押してください。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🏪 よく使うお店の登録</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→🏪よく使うお店からお店名を登録できます。<br>
+            記録追加時に備考欄の<strong>🏪ボタン</strong>をタップすると登録済みのお店をワンタップで選択できます。<br>
+            スーパーやコンビニなどよく行くお店を登録しておくと便利です。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📊 週次サマリー</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            画面下部の<strong>週次サマリー</strong>セクションで、1週間ごとの収入・支出・残高を確認できます。<br>
+            今週の行は青くハイライトされます。設定→📅週次サマリーからも確認できます。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -428,11 +477,11 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費・収入の自動登録</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
-            毎月の給与や家賃など固定の収支を設定→🔄固定費・収入の設定から登録すると自動で記録されます。
+            設定→🔄固定費・収入の設定から毎月の給与や家賃などを登録すると自動で記録されます。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📊 グラフ・内訳の確認</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📈 グラフ・内訳の確認</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             カテゴリ別の円グラフをタップすると備考別の詳細が確認できます。<br>
             月別推移グラフで収入・支出の傾向も一目でわかります。
@@ -446,10 +495,24 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 カレンダーメモ</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カレンダーの日付を<strong>長押し</strong>するとメモを書けます。病院・予定・イベントなど何でも記録できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">📤 データのエクスポート</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             設定→📤CSVエクスポートで全データをExcel形式でダウンロードできます。<br>
             📥CSVインポートで他のアプリのデータを取り込むこともできます。
+          </div>
+        </div>
+        <div style="background:#fff3cd;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">💡 便利な操作</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            <strong>左右スワイプ</strong>で月を切り替えられます。<br>
+            カレンダーの数字の左右にある <strong>‹ ›</strong> でも月切り替えができます。<br>
+            今日の日付は青枠でハイライトされています。
           </div>
         </div>
       </div>
@@ -579,7 +642,10 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <input type="number" id="ai2" placeholder="金額を入力（例: 5000）" min="1" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
       </div>
       <div style="margin-bottom:16px">
-        <input type="text" id="note2" list="note-history" placeholder="備考" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+        <div style="display:flex;gap:8px">
+          <input type="text" id="note2" list="note-history" placeholder="備考（お店名など）" style="flex:1;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-family:inherit">
+          <button type="button" onclick="openStorePicker('note2')" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">🏪</button>
+        </div>
       </div>
       <button onclick="addE2()" id="ab2" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">追加</button>
     </div>
@@ -617,6 +683,47 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
         <input type="date" id="edit-date" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
       </div>
       <button onclick="saveEdit()" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">保存</button>
+    </div>
+  </div>
+</div>
+<!-- お店管理モーダル -->
+<div class="modal-overlay" id="store-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🏪 よく使うお店</div>
+      <button class="modal-close" onclick="document.getElementById('store-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:12px 16px">
+      <div id="store-list" style="margin-bottom:12px"></div>
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:6px">新しいお店を追加</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="store-input" placeholder="例：イオン、セブン-イレブン" style="flex:1;font-size:15px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-family:inherit">
+          <button onclick="addStore()" style="padding:9px 16px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">追加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- お店ピッカー -->
+<div class="store-picker-overlay" id="store-picker-overlay" onclick="closeStorePicker()">
+  <div class="store-picker" onclick="event.stopPropagation()">
+    <div class="store-picker-hd">
+      <span class="store-picker-title">🏪 お店を選択</span>
+      <button onclick="closeStorePicker()" style="background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;padding:0">✕</button>
+    </div>
+    <div id="store-picker-list"></div>
+  </div>
+</div>
+<!-- 週次サマリーモーダル -->
+<div class="modal-overlay" id="weekly-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📅 週次サマリー</div>
+      <button class="modal-close" onclick="document.getElementById('weekly-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:12px 16px">
+      <div id="weekly-modal-body"></div>
     </div>
   </div>
 </div>
@@ -2008,6 +2115,7 @@ function render(){
   renderBudgetBars();
   renderBarChart();
   renderTrendChart();
+  renderWeeklySummary();
   let list=document.getElementById('elist');
   if(!sel){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
   let de=data.filter(e=>e.date===sel);
@@ -2022,6 +2130,143 @@ function render(){
     <button class="db" onclick="event.stopPropagation();delE('${e.id}')">✕</button>
   </div>
 `).join('');
+}
+
+// ===== お店管理機能 =====
+function getStores(){
+  return JSON.parse(localStorage.getItem('stores_'+userId)||'[]');
+}
+function saveStores(stores){
+  localStorage.setItem('stores_'+userId,JSON.stringify(stores));
+}
+function renderStoreList(){
+  let stores=getStores();
+  let el=document.getElementById('store-list');
+  if(!el)return;
+  if(!stores.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:10px">登録されているお店はありません</div>';return;}
+  el.innerHTML=stores.map((s,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:15px">🏪 ${s}</span>
+      <button onclick="deleteStore(${i})" style="background:none;border:none;color:#bbb;font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+    </div>`).join('');
+}
+function openStoreModal(){
+  renderStoreList();
+  document.getElementById('store-input').value='';
+  document.getElementById('store-modal').classList.add('show');
+}
+function addStore(){
+  let name=document.getElementById('store-input').value.trim();
+  if(!name){alert('お店名を入力してください');return;}
+  let stores=getStores();
+  if(stores.includes(name)){alert('すでに登録済みです');return;}
+  stores.push(name);
+  saveStores(stores);
+  document.getElementById('store-input').value='';
+  renderStoreList();
+  ss('ok','お店を登録しました');
+}
+function deleteStore(i){
+  let stores=getStores();
+  stores.splice(i,1);
+  saveStores(stores);
+  renderStoreList();
+}
+let storePickerTarget=null;
+function openStorePicker(targetId){
+  storePickerTarget=targetId;
+  let stores=getStores();
+  let list=document.getElementById('store-picker-list');
+  if(!stores.length){
+    list.innerHTML='<div class="store-picker-empty">登録されているお店がありません<br><span style="font-size:12px;color:#bbb">設定→🏪よく使うお店から追加できます</span></div>';
+  }else{
+    list.innerHTML=stores.map(s=>`
+      <div class="store-picker-item" onclick="selectStore('${s.replace(/'/g,"\\'")}')">🏪 ${s}</div>`).join('');
+  }
+  document.getElementById('store-picker-overlay').classList.add('show');
+}
+function selectStore(name){
+  if(storePickerTarget){
+    let el=document.getElementById(storePickerTarget);
+    if(el)el.value=name;
+  }
+  closeStorePicker();
+}
+function closeStorePicker(){
+  document.getElementById('store-picker-overlay').classList.remove('show');
+  storePickerTarget=null;
+}
+
+// ===== 週次サマリー =====
+function getWeeks(y,m){
+  let firstDay=new Date(y,m,1);
+  let lastDay=new Date(y,m+1,0);
+  let weeks=[];
+  // 最初の週の日曜日を起点
+  let cur=new Date(firstDay);
+  cur.setDate(cur.getDate()-cur.getDay());
+  while(cur<=lastDay){
+    let ws=new Date(cur);
+    let we=new Date(cur);we.setDate(we.getDate()+6);
+    let ds=ws<firstDay?new Date(firstDay):new Date(ws);
+    let de2=we>lastDay?new Date(lastDay):new Date(we);
+    if(ds<=lastDay)weeks.push({s:ds,e:de2});
+    cur.setDate(cur.getDate()+7);
+  }
+  return weeks;
+}
+function renderWeeklySummary(){
+  let el=document.getElementById('weekly-summary');
+  if(!el)return;
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let md=data.filter(e=>e.date.startsWith(prefix));
+  let weeks=getWeeks(vy,vm);
+  if(!weeks.length){el.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:8px">データなし</div>';return;}
+  el.innerHTML=weeks.map(w=>{
+    let sd=w.s.getDate(),ed=w.e.getDate();
+    let label=(vm+1)+'/'+sd+'〜'+ed;
+    let wInc=0,wExp=0;
+    md.forEach(e=>{
+      let d=parseInt(e.date.split('-')[2]);
+      if(d>=sd&&d<=ed){if(e.type==='inc')wInc+=e.amount;else wExp+=e.amount;}
+    });
+    let wBal=wInc-wExp;
+    let isCur=today.getFullYear()===vy&&today.getMonth()===vm&&today.getDate()>=sd&&today.getDate()<=ed;
+    let balColor=wBal>0?'var(--b)':wBal<0?'var(--r)':'#aaa';
+    return `<div class="weekly-row${isCur?' cur-week':''}">
+      <span class="weekly-label">${isCur?'<strong>'+label+'</strong>':label}</span>
+      <span class="weekly-inc">${wInc>0?fy(wInc):'-'}</span>
+      <span class="weekly-exp">${wExp>0?fy(wExp):'-'}</span>
+      <span class="weekly-bal" style="color:${wInc===0&&wExp===0?'#ccc':balColor}">${wInc===0&&wExp===0?'-':(wBal>=0?'+':'-')+fy(Math.abs(wBal))}</span>
+    </div>`;
+  }).join('');
+}
+function showWeeklySummaryModal(){
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let md=data.filter(e=>e.date.startsWith(prefix));
+  let weeks=getWeeks(vy,vm);
+  let html='<div style="font-size:13px;color:#888;margin-bottom:12px;text-align:center">'+vy+'年'+(vm+1)+'月</div>';
+  html+='<div class="weekly-header"><span>期間</span><span style="text-align:right">収入</span><span style="text-align:right">支出</span><span style="text-align:right">残高</span></div>';
+  weeks.forEach(w=>{
+    let sd=w.s.getDate(),ed=w.e.getDate();
+    let label=(vm+1)+'/'+sd+'〜'+ed;
+    let wInc=0,wExp=0;
+    md.forEach(e=>{
+      let d=parseInt(e.date.split('-')[2]);
+      if(d>=sd&&d<=ed){if(e.type==='inc')wInc+=e.amount;else wExp+=e.amount;}
+    });
+    let wBal=wInc-wExp;
+    let isCur=today.getFullYear()===vy&&today.getMonth()===vm&&today.getDate()>=sd&&today.getDate()<=ed;
+    let balColor=wBal>0?'var(--b)':wBal<0?'var(--r)':'#aaa';
+    html+=`<div class="weekly-row${isCur?' cur-week':''}">
+      <span class="weekly-label">${isCur?'<strong>'+label+'</strong>':label}</span>
+      <span class="weekly-inc">${wInc>0?fy(wInc):'-'}</span>
+      <span class="weekly-exp">${wExp>0?fy(wExp):'-'}</span>
+      <span class="weekly-bal" style="color:${wInc===0&&wExp===0?'#ccc':balColor}">${wInc===0&&wExp===0?'-':(wBal>=0?'+':'-')+fy(Math.abs(wBal))}</span>
+    </div>`;
+  });
+  document.getElementById('weekly-modal-body').innerHTML=html;
+  document.getElementById('weekly-modal').classList.add('show');
 }
 
 document.getElementById('prev').onclick=function(){vm--;if(vm<0){vm=11;vy--;}sel=null;updateDateHint();load()};
