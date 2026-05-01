@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="家計簿">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>家計簿</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#f5f5f5;color:#222}
+:root{
+  --g:#1D9E75;--gl:#E1F5EE;--gd:#085041;
+  --r:#E24B4A;--rl:#FCEBEB;--rd:#A32D2D;
+  --b:#378ADD;--bl:#E6F1FB;
+  --border:#e0e0e0;--bg:#fff;--bg2:#f7f7f7;
+}
+.wrap{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-top:165px}
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;background:#fff}
+.auth-logo{font-size:32px;font-weight:700;color:var(--g);margin-bottom:6px}
+.auth-sub{font-size:13px;color:#aaa;margin-bottom:36px}
+.auth-box{width:100%;max-width:360px}
+.auth-tabs{display:flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:24px}
+.auth-tab{flex:1;padding:10px;font-size:14px;border:none;background:none;cursor:pointer;color:#888;font-family:inherit;font-weight:500}
+.auth-tab.active{background:var(--g);color:#fff}
+.auth-field{margin-bottom:14px}
+.auth-field label{font-size:12px;color:#888;margin-bottom:5px;display:block}
+.auth-field input{width:100%;font-size:15px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;background:#fff;color:#222;font-family:inherit;outline:none}
+.auth-field input:focus{border-color:var(--g)}
+.auth-btn{width:100%;padding:13px;font-size:15px;border:none;border-radius:10px;background:var(--g);color:#fff;cursor:pointer;font-weight:600;font-family:inherit;margin-top:4px}
+.auth-btn:disabled{opacity:.5}
+.auth-err{font-size:13px;color:var(--r);text-align:center;margin-top:12px;min-height:20px}
+.auth-msg{font-size:13px;color:var(--g);text-align:center;margin-top:12px;min-height:20px}
+#app-screen{display:none}
+.topbar{background:var(--g);padding:2px 14px 4px;position:sticky;top:0;z-index:100}
+.topbar-name{font-size:14px;font-weight:600;color:rgba(255,255,255,0.85);margin-bottom:1px}
+.topbar-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+.topbar-bottom{display:flex;align-items:center;justify-content:space-between}
+.sync-row{display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0}
+.dot.ok{background:#A8F0D8}.dot.err{background:#FFAAAA}.dot.spin{background:#FFD580;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.slbl{font-size:11px;color:rgba(255,255,255,0.7)}
+.nav{display:flex;align-items:center;gap:6px}
+.nav button{border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:16px;color:#fff}
+.nav span{font-size:14px;font-weight:600;min-width:76px;text-align:center;color:#fff}
+.logout-btn{font-size:12px;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:5px 10px;cursor:pointer;font-family:inherit}
+.sumrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.sc{background:var(--bg2);border-radius:10px;padding:10px 12px}
+.sc .sl{font-size:11px;color:#888;margin-bottom:3px}
+.sc .sv{font-size:17px;font-weight:600}
+.sv.i{color:var(--g)}.sv.e{color:var(--r)}.sv.b{color:var(--b)}
+.panel{padding:14px 16px;border-bottom:1px solid var(--border)}
+.ph h3{font-size:15px;font-weight:600;color:#444;margin-bottom:8px}
+.form{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.formrow{display:flex;gap:10px;align-items:center}
+.tt{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
+.tt button{padding:7px 14px;font-size:13px;border:none;background:none;cursor:pointer;color:#888;font-family:inherit}
+.tt button.ai{background:var(--gl);color:var(--gd);font-weight:600}
+.tt button.ae{background:var(--rl);color:var(--rd);font-weight:600}
+select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;flex:1;font-family:inherit}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}
+.ab{padding:12px 22px;font-size:18px;border:none;border-radius:8px;background:var(--g);color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;font-family:inherit}
+.ab:disabled{opacity:.5}
+.date-hint{display:none}
+.date-hint span{color:var(--g);font-weight:600}
+.elist{display:none}
+.er{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg2);border-radius:8px}
+.ec{flex:1;font-size:13px;color:#888}
+.ea{font-size:14px;font-weight:600;min-width:80px;text-align:right}
+.ea.i{color:var(--g)}.ea.e{color:var(--r)}
+.db{background:none;border:none;cursor:pointer;font-size:18px;color:#bbb;padding:0 4px;line-height:1}
+.db:hover{color:var(--r)}
+.em{font-size:13px;color:#aaa;text-align:center;padding:10px 0}
+.cal{padding:12px 14px;border-bottom:1px solid var(--border)}
+.dows{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
+.dow{font-size:12px;font-weight:500;text-align:center;color:#888;padding:4px 0}
+.dow:first-child{color:var(--r)}.dow:last-child{color:var(--b)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cell{border-radius:10px;padding:6px 3px;min-height:64px;background:var(--bg2);border:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:border-color .15s}
+.cell:hover{border-color:#ccc}.cell:active{opacity:.7}
+.cell.other{opacity:.2;pointer-events:none}
+.cell.today{border-color:var(--b);background:var(--bl)}
+.cell.sel{border-color:var(--g)}
+.cn{font-size:13px;font-weight:500;color:#666;line-height:1}
+.cn.sun{color:var(--r)}.cn.sat{color:var(--b)}.cn.tod{color:var(--b);font-weight:700}
+.day-inc{font-size:9px;color:var(--gd);font-weight:500;line-height:1.3;width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+.day-exp{font-size:9px;color:var(--rd);font-weight:500;line-height:1.3;width:100%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+.chart-section{padding:16px 16px 20px;border-bottom:1px solid var(--border)}
+.chart-section-title{font-size:14px;font-weight:600;margin-bottom:14px;color:#444}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chart-box{background:var(--bg2);border-radius:12px;padding:12px 10px}
+.chart-box-title{font-size:12px;font-weight:600;text-align:center;margin-bottom:8px}
+.chart-box-title.inc{color:var(--gd)}.chart-box-title.exp{color:var(--rd)}
+.chart-canvas-wrap{display:flex;justify-content:center;margin-bottom:10px}
+.legend{display:flex;flex-direction:column;gap:5px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leg-label{flex:1;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg-pct{font-size:10px;color:#aaa;min-width:28px;text-align:right}
+.leg-amt{font-size:10px;color:#333;font-weight:600;padding-left:14px;margin-top:-3px;margin-bottom:2px}
+.no-data{font-size:12px;color:#bbb;text-align:center;padding:16px 0}
+.annual-section{padding:16px 14px 24px}
+.annual-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.annual-title{font-size:14px;font-weight:600;color:#444}
+.annual-year{font-size:13px;color:#888}
+.annual-table{width:100%;border-collapse:collapse;font-size:12px}
+.annual-table th{padding:10px 6px;text-align:right;color:#888;font-weight:500;border-bottom:2px solid var(--border);white-space:nowrap}
+.annual-table th:first-child{text-align:left}
+.annual-table td{padding:10px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+.annual-table td:first-child{text-align:left;font-weight:500;color:#555}
+.annual-table tr.future td{color:#ccc}
+.annual-table tr.current-month td{background:#f0faf5}
+.annual-table tr.current-month td:first-child{color:var(--g);font-weight:700}
+.annual-table tr.total-row td{font-weight:700;border-top:2px solid var(--border);border-bottom:none;background:var(--bg2)}
+.annual-table tr.bal-plus-row td{background:rgba(29,158,117,0.06)}
+.annual-table tr.bal-minus-row td{background:rgba(226,75,74,0.06)}
+.inc-val{color:var(--g)}.exp-val{color:var(--r)}.warn-val{color:#EF9F27;font-weight:600}
+.bal-pos{color:var(--b);font-weight:600}.bal-neg{color:var(--r);font-weight:600}
+.foot{font-size:11px;color:#aaa;text-align:center;padding:12px 16px;border-top:1px solid var(--border)}
+.settings-btn{background:rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+.settings-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999}
+.settings-overlay.show{display:block}
+.settings-menu{position:absolute;top:56px;right:12px;background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;min-width:200px}
+.settings-item{display:flex;align-items:center;gap:12px;padding:15px 20px;font-size:15px;color:#333;cursor:pointer;border-bottom:1px solid var(--border)}
+.settings-item:last-child{border-bottom:none}
+.settings-item:hover{background:var(--bg2)}
+.settings-item.danger{color:var(--r)}
+.settings-icon{font-size:16px;width:20px;text-align:center}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:75vh;display:flex;flex-direction:column;margin-bottom:20px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:16px;font-weight:600;color:#222}
+.modal-close{background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:0 4px;line-height:1}
+.modal-body{overflow-y:auto;padding:12px 16px;flex:1}
+.modal-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.modal-item:last-child{border-bottom:none}
+.modal-date{font-size:12px;color:#aaa;min-width:40px}
+.modal-note{font-size:11px;color:#bbb;flex:1}
+.modal-amt{font-size:14px;font-weight:600}
+.modal-total{padding:12px 16px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-total-label{font-size:13px;color:#888}
+.modal-total-val{font-size:16px;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- 認証画面 -->
+<div id="auth-screen">
+    <!-- ログイン前ガイド -->
+    <div id="guest-guide" style="width:100%;max-width:360px;margin-bottom:20px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:32px">📒</div>
+        <div style="font-size:20px;font-weight:700;color:#1D9E75;margin-bottom:4px">かんたん家計簿</div>
+        <div style="font-size:13px;color:#888">シンプルで使いやすい、あなただけの家計簿</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;background:#f0faf5;border-radius:10px;padding:10px">
+          <span style="font-size:22px">📅</span>
+          <div><div style="font-size:13px;font-weight:600">カレンダーで記録</div><div style="font-size:11px;color:#888">日付をタップしてすぐ入力</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#f0faf5;border-radius:10px;padding:10px">
+          <span style="font-size:22px">🔄</span>
+          <div><div style="font-size:13px;font-weight:600">固定費を自動登録</div><div style="font-size:11px;color:#888">毎月の支払いを自動で記録</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#f0faf5;border-radius:10px;padding:10px">
+          <span style="font-size:22px">📊</span>
+          <div><div style="font-size:13px;font-weight:600">グラフで見える化</div><div style="font-size:11px;color:#888">支出の傾向をひと目で確認</div></div>
+        </div>
+      </div>
+    </div>
+  <div class="auth-logo">💰 家計簿</div>
+  <div class="auth-sub">あなただけの家計管理</div>
+  <div class="auth-box">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">ログイン</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">新規登録</button>
+    </div>
+    <div id="login-form">
+      <div class="auth-field"><label>メールアドレス</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
+      <div class="auth-field"><label>パスワード</label><input type="password" id="login-pass" placeholder="パスワード"></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">ログイン</button>
+    </div>
+    <div id="signup-form" style="display:none">
+      <div class="auth-field"><label>お名前</label><input type="text" id="signup-name" placeholder="例：田中 太郎"></div>
+      <div class="auth-field"><label>メールアドレス</label><input type="email" id="signup-email" placeholder="example@mail.com"></div>
+      <div class="auth-field"><label>パスワード（6文字以上）</label><input type="password" id="signup-pass" placeholder="パスワード"></div>
+      <button class="auth-btn" id="signup-btn" onclick="doSignup()">登録する</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-msg" id="auth-msg"></div>
+  </div>
+</div>
+
+<!-- アプリ画面 -->
+<div id="app-screen">
+  <div class="wrap">
+    <div class="topbar" style="position:fixed;top:0;left:0;right:0;z-index:100;max-width:480px;margin:0 auto;padding:3px 14px 2px">
+      <!-- 1行目：年 / 名前 / 設定 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1px">
+        <div style="display:flex;align-items:center;gap:3px">
+          <button id="prev-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.5);padding:0">◀</button>
+          <span id="ylbl" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600"></span>
+          <button id="next-year" style="border:none;background:none;cursor:pointer;font-size:10px;color:rgba(255,255,255,0.5);padding:0">▶</button>
+        </div>
+        <span id="user-name-display" style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600"></span>
+        <button class="settings-btn" onclick="toggleSettings()" title="設定">⚙️</button>
+      </div>
+      <!-- 2行目：月切替（中央） -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <button id="prev" style="border:none;background:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.7);padding:0">‹</button>
+        <span id="mlbl" style="font-size:22px;font-weight:700;color:#fff;min-width:60px;text-align:center;line-height:1"></span>
+        <button id="next" style="border:none;background:none;cursor:pointer;font-size:18px;color:rgba(255,255,255,0.7);padding:0">›</button>
+      </div>
+      <!-- 同期状態 -->
+      <div class="sync-row" style="margin-top:1px">
+        <span class="dot spin" id="dot"></span>
+        <span class="slbl" id="slbl" style="font-size:10px">接続中...</span>
+      </div>
+    </div>
+    <!-- 収支バー（白背景・固定） -->
+    <div id="sumrow-bar" style="position:fixed;top:var(--topbar-h,72px);left:0;right:0;max-width:480px;margin:0 auto;z-index:99;background:#f5f5f5;padding:8px 12px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="font-size:11px;color:#888;margin-bottom:2px">収入</div>
+        <div id="si" style="font-size:17px;font-weight:700;color:var(--g)">¥0</div>
+      </div>
+      <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="font-size:11px;color:#888;margin-bottom:2px">支出</div>
+        <div id="se" style="font-size:17px;font-weight:700;color:var(--r)">¥0</div>
+      </div>
+      <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="font-size:11px;color:#888;margin-bottom:2px">残高</div>
+        <div id="sb" style="font-size:17px;font-weight:700;color:#333">¥0</div>
+      </div>
+    </div>
+
+    <!-- 設定オーバーレイ -->
+    <div class="settings-overlay" id="settings-overlay" onclick="closeSettings()">
+      <div class="settings-menu" onclick="event.stopPropagation()">
+        <div class="settings-item" onclick="changeName();closeSettings()">
+          <span class="settings-icon">✏️</span>名前を変更
+        </div>
+        <div class="settings-item" onclick="changePassword();closeSettings()">
+          <span class="settings-icon">🔑</span>パスワード変更
+        </div>
+        <div class="settings-item" onclick="openBudgetModal();closeSettings()">
+          <span class="settings-icon">🎯</span>月間予算の設定
+        </div>
+        <div class="settings-item" onclick="openFixedModal();closeSettings()">
+          <span class="settings-icon">🔄</span>固定費・収入の設定
+        </div>
+        <div class="settings-item" onclick="exportCSV();closeSettings()">
+          <span class="settings-icon">📤</span>CSVエクスポート
+        </div>
+        <div class="settings-item" onclick="document.getElementById('import-file').click();closeSettings()">
+          <span class="settings-icon">📥</span>CSVインポート
+        </div>
+        <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        <div class="settings-item" onclick="showGuide();closeSettings()">
+          <span class="settings-icon">📖</span>使い方ガイド
+        </div>
+        <div class="settings-item" onclick="showMemoHelp();closeSettings()">
+          <span class="settings-icon">📝</span>メモ機能の使い方
+        </div>
+        <div class="settings-item" onclick="showAddToHome();closeSettings()">
+          <span class="settings-icon">📱</span>ホーム画面に追加
+        </div>
+        <div class="settings-item danger" onclick="doLogout();closeSettings()">
+          <span class="settings-icon">🚪</span>ログアウト
+        </div>
+        <div class="settings-item danger" onclick="deleteAccount();closeSettings()">
+          <span class="settings-icon">🗑️</span>アカウント削除
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph" style="display:flex;align-items:baseline;gap:10px"><h3 style="margin:0;display:none">記録を追加</h3><span id="sel-date-label" style="font-size:17px;font-weight:700;display:none"></span></div>
+      <div class="date-hint" id="date-hint">選択中: <span id="date-hint-span">今日</span></div>
+      <div class="form">
+        <div class="formrow">
+          <div class="tt">
+            <button id="ib" class="ai" onclick="setType('inc')">収入</button>
+            <button id="eb" onclick="setType('exp')">支出</button>
+          </div>
+          <select id="cs"></select>
+        </div>
+        <div class="formrow">
+          <input type="number" id="ai" placeholder="金額を入力（例: 5000）" min="1">
+          <button class="ab" id="ab" onclick="addE()">追加</button>
+        </div>
+        <div class="formrow">
+          <input type="text" id="note" list="note-history" placeholder="備考" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
+          <datalist id="note-history"></datalist>
+        </div>
+      </div>
+      <div class="elist" id="elist"></div>
+    </div>
+    <div class="cal">
+      <div class="dows">
+        <div class="dow">日</div><div class="dow">月</div><div class="dow">火</div>
+        <div class="dow">水</div><div class="dow">木</div><div class="dow">金</div><div class="dow">土</div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+    <div class="chart-section">
+      <div class="chart-section-title">カテゴリ別内訳</div>
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-box-title inc">収入</div>
+          <div class="chart-canvas-wrap"><canvas id="pie-inc" width="110" height="110"></canvas></div>
+          <div class="legend" id="legend-inc"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-box-title exp">支出</div>
+          <div class="chart-canvas-wrap"><canvas id="pie-exp" width="110" height="110"></canvas></div>
+          <div class="legend" id="legend-exp"></div>
+        </div>
+      </div>
+    </div>
+    <!-- 予算セクション -->
+    <div class="chart-section" id="budget-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="chart-section-title" style="margin:0">月間予算</div>
+        <button onclick="openBudgetModal()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer">設定</button>
+      </div>
+      <div id="budget-bars"></div>
+    </div>
+    <!-- 月間支出カテゴリ棒グラフ -->
+    <div class="chart-section">
+      <div class="chart-section-title">今月の支出内訳</div>
+      <canvas id="bar-chart" height="180" style="width:100%"></canvas>
+    </div>
+    <!-- 月別推移グラフ -->
+    <div class="chart-section">
+      <div class="chart-section-title">月別推移（収入 vs 支出）</div>
+      <canvas id="trend-chart" height="160" style="width:100%"></canvas>
+    </div>
+    <div class="annual-section">
+      <div class="annual-header">
+        <div class="annual-title">年間収支</div>
+        <div class="annual-year" id="annual-year"></div>
+      </div>
+      <table class="annual-table">
+        <thead><tr><th>月</th><th>収入</th><th>支出</th><th>支出率</th><th>残高</th></tr></thead>
+        <tbody id="annual-body"></tbody>
+      </table>
+    </div>
+    <div class="foot">あなただけの家計簿</div>
+</div>
+
+<!-- 日付別記録モーダル -->
+<div class="modal-overlay" id="day-modal" onclick="closeDayModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="day-modal-title"></div>
+      <button class="modal-close" onclick="document.getElementById('day-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" id="day-modal-body"></div>
+    <div class="modal-total">
+      <span class="modal-total-label">収支</span>
+      <span class="modal-total-val" id="day-modal-total"></span>
+    </div>
+  </div>
+</div>
+<!-- 固定費設定モーダル -->
+<!-- ホーム画面追加モーダル -->
+<div class="modal-overlay" id="addtohome-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📱 ホーム画面に追加</div>
+      <button class="modal-close" onclick="document.getElementById('addtohome-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <!-- iOS Safari -->
+      <div style="margin-bottom:16px;padding:12px;background:#f0faf5;border-radius:12px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px">🍎 iPhoneの場合（Safari）</div>
+        <div style="font-size:13px;color:#555;line-height:1.8">
+          1. Safariでこのページを開く<br>
+          2. 下の <strong>共有ボタン（□↑）</strong> をタップ<br>
+          3. <strong>「ホーム画面に追加」</strong> をタップ<br>
+          4. 右上の <strong>「追加」</strong> をタップ
+        </div>
+      </div>
+      <!-- Android Chrome -->
+      <div style="padding:12px;background:#f0f4ff;border-radius:12px">
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px">🤖 Androidの場合（Chrome）</div>
+        <div style="font-size:13px;color:#555;line-height:1.8">
+          1. Chromeでこのページを開く<br>
+          2. 右上の <strong>「⋮」メニュー</strong> をタップ<br>
+          3. <strong>「ホーム画面に追加」</strong> をタップ<br>
+          4. <strong>「追加」</strong> をタップ
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:#aaa;text-align:center">
+        追加するとアプリのように使えます😊
+      </div>
+      <!-- URLをコピー -->
+      <button onclick="copyURL()" style="width:100%;margin-top:12px;padding:10px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">🔗 URLをコピー</button>
+    </div>
+  </div>
+</div>
+<!-- 使い方ガイドモーダル -->
+<div class="modal-overlay" id="guide-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📖 使い方ガイド</div>
+      <button class="modal-close" onclick="document.getElementById('guide-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px;max-height:70vh;overflow-y:auto">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 記録の追加</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カレンダーの日付をタップすると上部の入力フォームに移動します。<br>
+            収入・支出を選んでカテゴリ・金額・備考を入力して<strong>「追加」</strong>ボタンを押してください。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 記録の確認・編集</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            記録がある日（●マーク）をタップするとその日の記録一覧が表示されます。<br>
+            記録をタップすると編集、✕で削除できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費・収入の自動登録</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            毎月の給与や家賃など固定の収支を設定→🔄固定費・収入の設定から登録すると自動で記録されます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📊 グラフ・内訳の確認</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カテゴリ別の円グラフをタップすると備考別の詳細が確認できます。<br>
+            月別推移グラフで収入・支出の傾向も一目でわかります。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🎯 月間予算の設定</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→🎯月間予算の設定からカテゴリごとに予算を設定できます。<br>
+            使用率がバーで表示され、超えると赤くなります。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📤 データのエクスポート</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→📤CSVエクスポートで全データをExcel形式でダウンロードできます。<br>
+            📥CSVインポートで他のアプリのデータを取り込むこともできます。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- メモ使い方モーダル -->
+<div class="modal-overlay" id="memo-help-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📝 メモ機能の使い方</div>
+      <button class="modal-close" onclick="document.getElementById('memo-help-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 メモを追加する</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            カレンダーの日付を<strong>長押し</strong>するとメモ入力画面が開きます。<br>
+            病院・イベント・誕生日など何でも書けます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 メモがある日の確認</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            メモがある日はカレンダーに<strong>📝マーク</strong>が表示されます。<br>
+            日付をタップするとメモの内容も確認できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">✏️ メモを編集・削除する</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            もう一度長押しするか、メモをタップすると編集できます。<br>
+            内容を空にして保存すると削除されます。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- メモモーダル -->
+<div class="modal-overlay" id="memo-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="memo-modal-title">📝 メモ</div>
+      <button class="modal-close" onclick="document.getElementById('memo-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <textarea id="memo-text" placeholder="イベント、病院、予定など..." style="width:100%;height:120px;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:10px;box-sizing:border-box;resize:none;font-family:inherit"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="deleteMemo()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:14px;color:var(--r);cursor:pointer">削除</button>
+        <button onclick="saveMemo()" style="flex:2;padding:10px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 予算設定モーダル -->
+<div class="modal-overlay" id="budget-modal" onclick="closeBudgetModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">月間予算の設定</div>
+      <button class="modal-close" onclick="document.getElementById('budget-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="budget-inputs"></div>
+      <button onclick="saveBudget()" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px">保存</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="fixed-modal" onclick="closeFixedModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">固定費・収入の設定</div>
+      <button class="modal-close" onclick="document.getElementById('fixed-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="fixed-list" style="margin-bottom:16px"></div>
+      <div style="border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:13px;color:#888;margin-bottom:8px">新しく追加</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button id="fixed-inc-btn" onclick="setFixedType('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
+          <button id="fixed-exp-btn" onclick="setFixedType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+        </div>
+        <select id="fixed-category" style="width:100%;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px"></select>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="number" id="fixed-amount" placeholder="金額" style="flex:1;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px">
+          <select id="fixed-day" style="font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px"></select>
+        </div>
+        <input type="text" id="fixed-note" placeholder="備考（例：給与）" style="width:100%;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;margin-bottom:8px">
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:#888;margin-bottom:4px">開始年月</div>
+          <div style="display:flex;gap:6px">
+            <select id="fixed-start-y" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"></select>
+            <select id="fixed-start-m" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"></select>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;color:#888;margin-bottom:4px">終了年月（任意・空欄で無期限）</div>
+          <div style="display:flex;gap:6px">
+            <select id="fixed-end-y" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"><option value="">なし</option></select>
+            <select id="fixed-end-m" style="flex:1;font-size:14px;padding:8px;border:1px solid var(--border);border-radius:8px"><option value="">-</option></select>
+          </div>
+        </div>
+        <button onclick="addFixed()" style="width:100%;padding:11px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">追加</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 記録追加モーダル -->
+<div class="modal-overlay" id="add-modal" onclick="closeAddModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="add-modal-title">記録を追加</div>
+      <button class="modal-close" onclick="document.getElementById('add-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div style="margin-bottom:12px">
+        <div style="display:flex;gap:8px">
+          <button id="ib2" onclick="setType2('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
+          <button id="eb2" onclick="setType2('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <select id="cs2" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <input type="number" id="ai2" placeholder="金額を入力（例: 5000）" min="1" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <input type="text" id="note2" list="note-history" placeholder="備考" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <button onclick="addE2()" id="ab2" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">追加</button>
+    </div>
+  </div>
+</div>
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">記録を編集</div>
+      <button class="modal-close" onclick="document.getElementById('edit-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">種別</div>
+        <div style="display:flex;gap:8px">
+          <button id="edit-inc-btn" onclick="setEditType('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">収入</button>
+          <button id="edit-exp-btn" onclick="setEditType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">カテゴリ</div>
+        <select id="edit-category" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">金額</div>
+        <input type="number" id="edit-amount" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">備考</div>
+        <input type="text" id="edit-note" list="note-history" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;color:#888;margin-bottom:4px">日付</div>
+        <input type="date" id="edit-date" style="width:100%;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box">
+      </div>
+      <button onclick="saveEdit()" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">保存</button>
+    </div>
+  </div>
+</div>
+<!-- カテゴリ詳細モーダル -->
+<div class="modal-overlay" id="cat-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="document.getElementById('cat-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-total">
+      <span class="modal-total-label">合計</span>
+      <span class="modal-total-val" id="modal-total"></span>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
+
+<script>
+const SU='https://rpalacpkyloamikjmtri.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
+const INC=['給与','副業','ボーナス','配当','その他収入'];
+const EXP=['食費','外食','交通費','住居費','水道光熱費','通信費','医療費','娯楽','衣類','日用品','教育','保険','税金','貯蓄','投資','その他支出'];
+const INC_COLORS=['#1D9E75','#5DCAA5','#9FE1CB','#0F6E56','#085041','#639922','#97C459'];
+const EXP_COLOR_MAP={
+  '食費':'#E24B4A','外食':'#FF7F50','交通費':'#EF9F27','住居費':'#D4537E',
+  '水道光熱費':'#7F77DD','通信費':'#378ADD','医療費':'#6BCB77','娯楽':'#F9C74F',
+  '衣類':'#C77DFF','日用品':'#4CC9F0','教育':'#185FA5','保険':'#534AB7',
+  '税金':'#A32D2D','貯蓄':'#1D9E75','投資':'#2E7D32','その他支出':'#888888'
+};
+const EXP_COLORS=EXP.map(c=>EXP_COLOR_MAP[c]||'#888888');
+
+let ct='inc',today=new Date(),vy=today.getFullYear(),vm=today.getMonth();
+let _td=today;
+let sel=_td.getFullYear()+'-'+String(_td.getMonth()+1).padStart(2,'0')+'-'+String(_td.getDate()).padStart(2,'0');
+let data=[],annualData=[];
+function updateDateHint(){
+  if(!sel){document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';return;}
+  let p=sel.split('-');
+  document.getElementById('date-hint').innerHTML='選択中: <span>'+p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日</span>';
+  // sel-date-labelも更新
+  let label=document.getElementById('sel-date-label');
+  if(label&&label.style.display==='none'){
+    let now=new Date();
+    let isToday=parseInt(p[0])===now.getFullYear()&&parseInt(p[1])-1===now.getMonth()&&parseInt(p[2])===now.getDate();
+    label.textContent=parseInt(p[1])+'月'+parseInt(p[2])+'日'+(isToday?' (今日)':'');
+    label.style.color='#1D9E75';
+    label.style.display='inline';
+  }
+}
+let accessToken=null,refreshToken=null,userId=null,userName='';
+
+function H(x={}){return{'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+(accessToken||SK),...x}}
+
+async function refreshAccessToken(){
+  let rt=refreshToken||localStorage.getItem('kb_refresh');
+  if(!rt)return false;
+  try{
+    let r=await fetch(SU+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({refresh_token:rt})
+    });
+    if(!r.ok)return false;
+    let d=await r.json();
+    accessToken=d.access_token;
+    if(d.refresh_token){refreshToken=d.refresh_token;localStorage.setItem('kb_refresh',d.refresh_token);}
+    localStorage.setItem('kb_token',accessToken);
+    return true;
+  }catch(e){return false;}
+}
+
+async function fetchWithRefresh(url,options){
+  let r=await fetch(url,options);
+  if(r.status===401||r.status===403){
+    let ok=await refreshAccessToken();
+    if(ok){
+      // ヘッダーを更新して再試行
+      options.headers={...options.headers,...H()};
+      r=await fetch(url,options);
+    }
+  }
+  return r;
+}
+function fy(n){return '¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP')}
+function fk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function ss(s,t){document.getElementById('dot').className='dot '+s;document.getElementById('slbl').textContent=t}
+
+function switchTab(tab){
+  document.getElementById('tab-login').className='auth-tab'+(tab==='login'?' active':'');
+  document.getElementById('tab-signup').className='auth-tab'+(tab==='signup'?' active':'');
+  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
+  document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';
+  document.getElementById('auth-err').textContent='';
+  document.getElementById('auth-msg').textContent='';
+}
+
+async function doLogin(){
+  let email=document.getElementById('login-email').value.trim();
+  let pass=document.getElementById('login-pass').value;
+  if(!email||!pass){document.getElementById('auth-err').textContent='メールとパスワードを入力してください';return}
+  let btn=document.getElementById('login-btn');
+  btn.disabled=true;btn.textContent='ログイン中...';
+  document.getElementById('auth-err').textContent='';
+  try{
+    let r=await fetch(SU+'/auth/v1/token?grant_type=password',{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({email,password:pass})
+    });
+    let d=await r.json();
+    if(!r.ok)throw new Error(d.error_description||'ログイン失敗');
+    accessToken=d.access_token;userId=d.user.id;
+    userName=d.user.user_metadata?.name||d.user.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.user.id)||email.split('@')[0];
+    localStorage.setItem('kb_token',accessToken);
+    localStorage.setItem('kb_uid',userId);
+    localStorage.setItem('kb_name_'+userId,userName);
+    showApp();
+  }catch(e){document.getElementById('auth-err').textContent=e.message}
+  btn.disabled=false;btn.textContent='ログイン';
+}
+
+async function doSignup(){
+  let name=document.getElementById('signup-name').value.trim();
+  let email=document.getElementById('signup-email').value.trim();
+  let pass=document.getElementById('signup-pass').value;
+  if(!name){document.getElementById('auth-err').textContent='お名前を入力してください';return}
+  if(!email||!pass){document.getElementById('auth-err').textContent='メールとパスワードを入力してください';return}
+  if(pass.length<6){document.getElementById('auth-err').textContent='パスワードは6文字以上にしてください';return}
+  let btn=document.getElementById('signup-btn');
+  btn.disabled=true;btn.textContent='登録中...';
+  document.getElementById('auth-err').textContent='';
+  try{
+    let r=await fetch(SU+'/auth/v1/signup',{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SK},
+      body:JSON.stringify({email,password:pass,data:{name}})
+    });
+    let d=await r.json();
+    if(!r.ok)throw new Error(d.error_description||'登録失敗');
+    if(d.access_token){
+      accessToken=d.access_token;userId=d.user.id;userName=name;
+      localStorage.setItem('kb_token',accessToken);
+      localStorage.setItem('kb_uid',userId);
+      localStorage.setItem('kb_name_'+userId,userName);
+      showApp();
+    }else{
+      document.getElementById('auth-msg').textContent='登録しました！ログインしてください。';
+      switchTab('login');
+    }
+  }catch(e){document.getElementById('auth-err').textContent=e.message}
+  btn.disabled=false;btn.textContent='登録する';
+}
+
+async function deleteAccount(){
+  if(!confirm('アカウントを削除しますか？\nすべてのデータが失われます。'))return;
+  if(!confirm('本当に削除しますか？\nこの操作は取り消せません。'))return;
+  ss('spin','削除中...');
+  try{
+    // 全データ削除
+    await fetchWithRefresh(SU+'/rest/v1/entries?user_id=eq.'+userId,{method:'DELETE',headers:H()});
+    // アカウント削除
+    await fetch(SU+'/auth/v1/user',{method:'DELETE',headers:H()});
+    alert('アカウントを削除しました。');
+    await doLogout();
+  }catch(e){ss('err','削除失敗');alert('削除に失敗しました。');}
+}
+
+async function doLogout(){
+  try{await fetch(SU+'/auth/v1/logout',{method:'POST',headers:H()})}catch(e){}
+  accessToken=null;userId=null;userName='';
+  localStorage.removeItem('kb_token');localStorage.removeItem('kb_uid');localStorage.removeItem('kb_refresh');
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+async function tryAutoLogin(){
+  let token=localStorage.getItem('kb_token');
+  if(!token)return;
+  try{
+    let r=await fetch(SU+'/auth/v1/user',{headers:{'apikey':SK,'Authorization':'Bearer '+token}});
+    if(!r.ok)throw new Error();
+    let d=await r.json();
+    accessToken=token;userId=d.id;
+    refreshToken=localStorage.getItem('kb_refresh')||null;
+    userName=d.user_metadata?.name||d.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.id)||d.email.split('@')[0];
+    localStorage.setItem('kb_name_'+userId,userName);
+    showApp();
+  }catch(e){localStorage.removeItem('kb_token')}
+}
+
+const SEASON_PHOTOS={
+  spring:[
+    'https://images.unsplash.com/photo-1546961342-ea5f62d51e2c?w=800&q=80',
+    'https://images.unsplash.com/photo-1457530378978-8bac673b8062?w=800&q=80',
+    'https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=800&q=80',
+    'https://images.unsplash.com/photo-1462275646964-a0e3386b89fa?w=800&q=80',
+  ],
+  summer:[
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    'https://images.unsplash.com/photo-1468581264429-2548ef9eb732?w=800&q=80',
+    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=80',
+    'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=800&q=80',
+  ],
+  autumn:[
+    'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=800&q=80',
+    'https://images.unsplash.com/photo-1445262102387-5fbb30a5e59d?w=800&q=80',
+    'https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?w=800&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80',
+  ],
+  winter:[
+    'https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=800&q=80',
+    'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=800&q=80',
+    'https://images.unsplash.com/photo-1457269449834-928af64c684d?w=800&q=80',
+    'https://images.unsplash.com/photo-1418985991508-e47386d96a71?w=800&q=80',
+  ]
+};
+function getSeasonPhotos(month){
+  const m=month+1;
+  if(m>=3&&m<=5)return SEASON_PHOTOS.spring;
+  if(m>=6&&m<=8)return SEASON_PHOTOS.summer;
+  if(m>=9&&m<=11)return SEASON_PHOTOS.autumn;
+  return SEASON_PHOTOS.winter;
+}
+function getSeasonFallback(month){
+  const m=month+1;
+  if(m>=3&&m<=5)return 'linear-gradient(135deg,#f06292,#ce93d8)';
+  if(m>=6&&m<=8)return 'linear-gradient(135deg,#26c6da,#0097a7)';
+  if(m>=9&&m<=11)return 'linear-gradient(135deg,#ff8f00,#e65100)';
+  return 'linear-gradient(135deg,#1565c0,#0d47a1)';
+}
+function applySeasonBg(){
+  let photos=getSeasonPhotos(vm);
+  let seed=(vy*12+vm)%photos.length;
+  let url=photos[seed];
+  let tb=document.querySelector('.topbar');
+  // まずフォールバックのグラデーションを設定
+  tb.style.background=getSeasonFallback(vm);
+  // 写真を読み込んでから適用
+  let img=new Image();
+  img.onload=function(){
+    tb.style.background='linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.55)), url('+url+') center/cover no-repeat';
+  };
+  img.onerror=function(){
+    // 失敗時はグラデーションのまま
+  };
+  img.src=url;
+}
+function showApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
+  applySeasonBg();
+  load();
+}
+
+function dedup(arr){
+  let seen=new Set();
+  return arr.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+}
+
+async function load(){
+  ss('spin','読込中...');
+  try{
+    let p=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(p+'*')+'&order=created_at.asc&user_id=eq.'+userId,{headers:H()});
+    if(!r.ok)throw new Error();
+    data=dedup(await r.json());ss('ok','同期済み');
+  }catch(e){ss('err','エラー')}
+  await loadAnnual();render();updateDateHint();
+  // topbarの高さをCSS変数に反映
+  let tb=document.querySelector('.topbar');
+  if(tb){
+    let h=tb.offsetHeight;
+    document.documentElement.style.setProperty('--topbar-h',h+'px');
+    let bar=document.getElementById('sumrow-bar');
+    if(bar)bar.style.top=h+'px';
+  }
+}
+
+async function loadAnnual(){
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?date=like.'+encodeURIComponent(vy+'-*')+'&order=date.asc&user_id=eq.'+userId,{headers:H()});
+    if(!r.ok)throw new Error();
+    annualData=dedup(await r.json());
+  }catch(e){annualData=[]}
+}
+
+async function addE(){
+  if(!sel){alert('カレンダーの日付を選んでください');return}
+  let a=parseInt(document.getElementById('ai').value);
+  if(!a||a<=0){alert('金額を入力してください');return}
+  let c=document.getElementById('cs').value;
+  let btn=document.getElementById('ab');
+  btn.disabled=true;btn.textContent='保存中';ss('spin','保存中...');
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({date:sel,type:ct,category:c,amount:a,user_id:userId,note:document.getElementById('note').value.trim()||null})
+    });
+    if(!r.ok)throw new Error((await r.json()).message||r.status);
+    let ne=await r.json();
+    let noteVal=document.getElementById('note').value.trim();
+    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
+    document.getElementById('ai').value='';
+    document.getElementById('note').value='';
+    ss('ok','保存しました');
+  }catch(e){ss('err','保存失敗');alert('保存失敗: '+e.message)}
+  btn.disabled=false;btn.textContent='追加';render();
+}
+
+// ===== 予算機能 =====
+function getBudget(){
+  return JSON.parse(localStorage.getItem('budget_'+userId)||'{}');
+}
+function saveBudget(){
+  let budget={};
+  EXP.forEach(cat=>{
+    let el=document.getElementById('budget-'+cat);
+    if(el&&el.value)budget[cat]=parseInt(el.value)||0;
+  });
+  localStorage.setItem('budget_'+userId,JSON.stringify(budget));
+  document.getElementById('budget-modal').classList.remove('show');
+  renderBudgetBars();
+}
+function openBudgetModal(){
+  let budget=getBudget();
+  document.getElementById('budget-inputs').innerHTML=EXP.map(cat=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:14px;flex:1">${cat}</span>
+      <input type="number" id="budget-${cat}" value="${budget[cat]||''}" placeholder="未設定"
+        style="width:110px;font-size:14px;padding:7px;border:1px solid var(--border);border-radius:8px;text-align:right">
+      <span style="font-size:13px;color:#888">円</span>
+    </div>`).join('');
+  document.getElementById('budget-modal').classList.add('show');
+}
+function closeBudgetModal(e){
+  if(e.target===document.getElementById('budget-modal'))
+    document.getElementById('budget-modal').classList.remove('show');
+}
+function renderBudgetBars(){
+  let budget=getBudget();
+  let bars=document.getElementById('budget-bars');
+  if(!bars)return;
+  let cats=Object.keys(budget).filter(k=>budget[k]>0);
+  if(!cats.length){bars.innerHTML='<div style="color:#aaa;font-size:13px;text-align:center;padding:8px">予算が設定されていません</div>';return;}
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let md=data.filter(e=>e.date.startsWith(prefix)&&e.type==='exp');
+  bars.innerHTML=cats.map(cat=>{
+    let spent=md.filter(e=>e.category===cat).reduce((s,e)=>s+e.amount,0);
+    let bgt=budget[cat];
+    let pct=Math.min(Math.round(spent/bgt*100),100);
+    let color=pct>=100?'var(--r)':pct>=80?'#EF9F27':'var(--g)';
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+        <span>${cat}</span>
+        <span style="color:${color}">${fy(spent)} / ${fy(bgt)}</span>
+      </div>
+      <div style="background:#eee;border-radius:4px;height:8px">
+        <div style="width:${pct}%;background:${color};border-radius:4px;height:8px;transition:width 0.3s"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 月間支出棒グラフ =====
+function renderBarChart(){
+  let canvas=document.getElementById('bar-chart');
+  if(!canvas)return;
+  let ctx=canvas.getContext('2d');
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let seen=new Set();
+  let md=annualData.filter(e=>{
+    if(!e.date.startsWith(prefix)||e.type!=='exp')return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  let totals={};
+  md.forEach(e=>{totals[e.category]=(totals[e.category]||0)+e.amount;});
+  let ents=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!ents.length){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#aaa';ctx.font='13px sans-serif';ctx.textAlign='center';
+    ctx.fillText('支出データがありません',canvas.offsetWidth/2,90);
+    return;
+  }
+  let W=canvas.offsetWidth||320;
+  canvas.width=W*window.devicePixelRatio||W;
+  canvas.height=180*window.devicePixelRatio||180;
+  ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  let w=W,h=180,pad={t:10,r:10,b:50,l:55};
+  let cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  let maxVal=Math.max(...ents.map(e=>e[1]),1);
+  let colors=['#E24B4A','#EF9F27','#7F77DD','#378ADD','#1D9E75','#D85A30'];
+  ctx.clearRect(0,0,w,h);
+  // グリッド
+  ctx.strokeStyle='#eee';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    let y=pad.t+ch*(1-i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='9px sans-serif';ctx.textAlign='right';
+    ctx.fillText(fy(Math.round(maxVal*i/4)),pad.l-4,y+3);
+  }
+  // バー
+  let bw=Math.min(cw/ents.length*0.6,35);
+  let gap=cw/ents.length;
+  ents.forEach(([cat,val],i)=>{
+    let bh=ch*(val/maxVal);
+    let x=pad.l+gap*i+gap/2-bw/2;
+    let y=pad.t+ch-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.beginPath();
+    ctx.roundRect(x,y,bw,bh,4);
+    ctx.fill();
+    // ラベル
+    ctx.fillStyle='#555';ctx.font='9px sans-serif';ctx.textAlign='center';
+    let label=cat.length>4?cat.slice(0,4)+'…':cat;
+    ctx.fillText(label,x+bw/2,h-pad.b+12);
+    ctx.fillText(fy(val),x+bw/2,y-3);
+  });
+}
+
+// ===== 月別推移グラフ =====
+let trendChart=null;
+function renderTrendChart(){
+  let canvas=document.getElementById('trend-chart');
+  if(!canvas)return;
+  let ctx=canvas.getContext('2d');
+  let months=Array.from({length:12},(_,i)=>i+1);
+  let incData=months.map(m=>{
+    let prefix=vy+'-'+String(m).padStart(2,'0')+'-';
+    return annualData.filter(e=>e.date.startsWith(prefix)&&e.type==='inc').reduce((s,e)=>s+e.amount,0);
+  });
+  let expData=months.map(m=>{
+    let prefix=vy+'-'+String(m).padStart(2,'0')+'-';
+    return annualData.filter(e=>e.date.startsWith(prefix)&&e.type==='exp').reduce((s,e)=>s+e.amount,0);
+  });
+  let labels=months.map(m=>m+'月');
+  let maxVal=Math.max(...incData,...expData,1);
+  let W=canvas.offsetWidth||320;
+  canvas.width=W*window.devicePixelRatio||W;
+  canvas.height=160*window.devicePixelRatio||160;
+  ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  let w=W,h=160,pad={t:10,r:10,b:30,l:50};
+  let cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  ctx.clearRect(0,0,w,h);
+  // グリッド
+  ctx.strokeStyle='#eee';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    let y=pad.t+ch*(1-i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='10px sans-serif';ctx.textAlign='right';
+    ctx.fillText(fy(Math.round(maxVal*i/4)),pad.l-4,y+4);
+  }
+  // 折れ線
+  [[incData,'#1D9E75'],[expData,'#E24B4A']].forEach(([vals,color])=>{
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    vals.forEach((v,i)=>{
+      let x=pad.l+cw*i/11;
+      let y=pad.t+ch*(1-v/maxVal);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // 点
+    vals.forEach((v,i)=>{
+      if(v===0)return;
+      let x=pad.l+cw*i/11,y=pad.t+ch*(1-v/maxVal);
+      ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    });
+  });
+  // X軸ラベル
+  ctx.fillStyle='#888';ctx.font='10px sans-serif';ctx.textAlign='center';
+  labels.forEach((l,i)=>{
+    let x=pad.l+cw*i/11;
+    ctx.fillText(l,x,h-8);
+  });
+  // 凡例
+  ctx.fillStyle='#1D9E75';ctx.fillRect(pad.l,2,12,8);
+  ctx.fillStyle='#444';ctx.textAlign='left';ctx.fillText('収入',pad.l+14,10);
+  ctx.fillStyle='#E24B4A';ctx.fillRect(pad.l+50,2,12,8);
+  ctx.fillStyle='#444';ctx.fillText('支出',pad.l+64,10);
+}
+
+function showGuide(){
+  document.getElementById('guide-modal').classList.add('show');
+}
+
+function showMemoHelp(){
+  document.getElementById('memo-help-modal').classList.add('show');
+}
+
+function showAddToHome(){
+  document.getElementById('addtohome-modal').classList.add('show');
+}
+function copyURL(){
+  let url='https://makotonakatsuru.github.io/kakeibo/';
+  navigator.clipboard.writeText(url).then(()=>{
+    ss('ok','URLをコピーしました！');
+    document.getElementById('addtohome-modal').classList.remove('show');
+  }).catch(()=>{
+    prompt('このURLをコピーしてください',url);
+  });
+}
+// ===== カレンダーメモ機能 =====
+let memoCurrentKey=null;
+
+function getMemos(){
+  return JSON.parse(localStorage.getItem('cal_memos_'+userId)||'{}');
+}
+function saveMemos(memos){
+  localStorage.setItem('cal_memos_'+userId,JSON.stringify(memos));
+}
+
+function openMemoModal(key,y,m,d){
+  memoCurrentKey=key;
+  let memos=getMemos();
+  let dayColor=getDayColor(y,m,d);
+  document.getElementById('memo-modal-title').innerHTML='📝 '+(m+1)+'月'+d+'日のメモ';
+  document.getElementById('memo-modal-title').style.color=dayColor;
+  document.getElementById('memo-text').value=memos[key]||'';
+  document.getElementById('memo-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('memo-text').focus(),300);
+}
+
+function saveMemo(){
+  if(!memoCurrentKey)return;
+  let text=document.getElementById('memo-text').value.trim();
+  let memos=getMemos();
+  if(text){
+    memos[memoCurrentKey]=text;
+  }else{
+    delete memos[memoCurrentKey];
+  }
+  saveMemos(memos);
+  document.getElementById('memo-modal').classList.remove('show');
+  render();
+  ss('ok','メモを保存しました');
+}
+
+function deleteMemo(){
+  if(!memoCurrentKey)return;
+  let memos=getMemos();
+  delete memos[memoCurrentKey];
+  saveMemos(memos);
+  document.getElementById('memo-modal').classList.remove('show');
+  render();
+  ss('ok','メモを削除しました');
+}
+
+function updateNoteHistory(){
+  let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');
+  let dl=document.getElementById('note-history');
+  if(!dl)return;
+  dl.innerHTML='';
+  hist.forEach(function(h){
+    let opt=document.createElement('option');
+    opt.value=h;
+    dl.appendChild(opt);
+  });
+}
+
+// 固定費関連
+let fixedType='inc';
+
+function openFixedModal(){
+  // 日付セレクト初期化
+  let dayEl=document.getElementById('fixed-day');
+  dayEl.innerHTML=Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'日</option>').join('')+'<option value="99">末日</option>';
+  setFixedType('inc');
+  // 年月セレクトを初期化
+  let now=new Date();
+  let cy=now.getFullYear(),cm=now.getMonth()+1;
+  let years=[];
+  for(let y=cy-10;y<=cy+10;y++)years.push(y);
+  let months=Array.from({length:12},(_,i)=>i+1);
+  let syEl=document.getElementById('fixed-start-y');
+  let smEl=document.getElementById('fixed-start-m');
+  let eyEl=document.getElementById('fixed-end-y');
+  let emEl=document.getElementById('fixed-end-m');
+  syEl.innerHTML=years.map(y=>'<option value="'+y+'"'+(y===cy?' selected':'')+'>'+y+'年</option>').join('');
+  smEl.innerHTML=months.map(m=>'<option value="'+m+'"'+(m===cm?' selected':'')+'>'+m+'月</option>').join('');
+  eyEl.innerHTML='<option value="">なし</option>'+years.map(y=>'<option value="'+y+'">'+y+'年</option>').join('');
+  emEl.innerHTML='<option value="">-</option>'+months.map(m=>'<option value="'+m+'">'+m+'月</option>').join('');
+  renderFixedList();
+  document.getElementById('fixed-modal').classList.add('show');
+}
+function closeFixedModal(e){
+  if(e.target===document.getElementById('fixed-modal'))
+    document.getElementById('fixed-modal').classList.remove('show');
+}
+function setFixedType(t){
+  fixedType=t;
+  document.getElementById('fixed-inc-btn').style.background=t==='inc'?'var(--g)':'';
+  document.getElementById('fixed-inc-btn').style.color=t==='inc'?'#fff':'';
+  document.getElementById('fixed-exp-btn').style.background=t==='exp'?'var(--r)':'';
+  document.getElementById('fixed-exp-btn').style.color=t==='exp'?'#fff':'';
+  document.getElementById('fixed-category').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+function getFixedItems(){
+  return JSON.parse(localStorage.getItem('fixedItems_'+userId)||'[]');
+}
+function saveFixedItems(items){
+  localStorage.setItem('fixedItems_'+userId,JSON.stringify(items));
+}
+function renderFixedList(){
+  let items=getFixedItems();
+  let el=document.getElementById('fixed-list');
+  if(!items.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:8px">固定費・収入が登録されていません</div>';return;}
+  el.innerHTML=items.map((item,i)=>`
+    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <span style="font-size:12px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.day===99?'毎月末日':'毎月'+item.day+'日'}</span>
+          <span style="font-size:14px;font-weight:600;margin-left:6px">${item.category}</span>
+          <span style="font-size:13px;color:#888;margin-left:4px">${item.note?item.note.replace('🔄','').trim():''}</span><br>
+          <span style="font-size:14px;color:${item.type==='inc'?'var(--g)':'var(--r)'}">${item.type==='inc'?'+':'-'}¥${item.amount.toLocaleString()}</span>
+          <span style="font-size:11px;color:#aaa;margin-left:6px">${(()=>{
+          let s=item.start?item.start.replace('-','年')+'月':'';
+          let e=item.end?item.end.replace('-','年')+'月':(new Date().getFullYear()+'年12月');
+          return s+'〜'+e;
+        })()}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="editFixed(${i})" style="background:none;border:1px solid var(--border);border-radius:6px;color:#555;font-size:12px;padding:4px 8px;cursor:pointer">編集</button>
+          <button onclick="deleteFixed(${i})" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+async function addFixed(){
+  let amount=parseInt(document.getElementById('fixed-amount').value);
+  let category=document.getElementById('fixed-category').value;
+  let day=parseInt(document.getElementById('fixed-day').value);
+  let note=document.getElementById('fixed-note').value.trim();
+  let sy=document.getElementById('fixed-start-y').value;
+  let sm=document.getElementById('fixed-start-m').value;
+  let ey=document.getElementById('fixed-end-y').value;
+  let em=document.getElementById('fixed-end-m').value;
+  let start=sy&&sm?sy+'-'+String(sm).padStart(2,'0'):null;
+  let end=(ey&&em)?ey+'-'+String(em).padStart(2,'0'):null;
+  if(!amount||amount<=0){alert('金額を入力してください');return;}
+  if(!start){alert('開始年月を選択してください');return;}
+  let items=getFixedItems();
+  items.push({type:fixedType,category,amount,day,note:note||null,start,end});
+  saveFixedItems(items);
+  document.getElementById('fixed-amount').value='';
+  document.getElementById('fixed-note').value='';
+  renderFixedList();
+  // 追加直後に新しい項目だけ適用
+  let newItem={type:fixedType,category,amount,day,note:note||null,start,end};
+  await applyOneFixedItem(newItem);
+  await load();
+}
+async function deleteFixed(i){
+  let items=getFixedItems();
+  let item=items[i];
+  // 削除開始月を選択
+  let now=new Date();
+  let nowY=now.getFullYear(),nowM=now.getMonth()+1;
+  let fromY=nowY,fromM=nowM;
+  // 年月選択ダイアログ
+  await new Promise(resolve=>{
+    let overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    let box=document.createElement('div');
+    box.style.cssText='background:#fff;border-radius:16px;padding:20px;width:100%;max-width:320px';
+    let years=Array.from({length:11},(_,i)=>nowY-5+i);
+    let months=Array.from({length:12},(_,i)=>i+1);
+    box.innerHTML=`
+      <div style="font-size:16px;font-weight:600;margin-bottom:16px">削除方法を選んでください</div>
+      <button id="del-all" style="width:100%;padding:11px;background:#E24B4A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px">全期間を削除</button>
+      <div style="font-size:13px;color:#888;margin-bottom:8px;text-align:center">または特定の月から削除</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <select id="del-from-y" style="flex:1;font-size:15px;padding:8px;border:1px solid #ddd;border-radius:8px">
+          ${years.map(y=>'<option value="'+y+'"'+(y===nowY?' selected':'')+'>'+y+'年</option>').join('')}
+        </select>
+        <select id="del-from-m" style="flex:1;font-size:15px;padding:8px;border:1px solid #ddd;border-radius:8px">
+          ${months.map(m=>'<option value="'+m+'"'+(m===nowM?' selected':'')+'>'+m+'月</option>').join('')}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="del-cancel" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:14px;cursor:pointer">キャンセル</button>
+        <button id="del-from-ok" style="flex:1;padding:10px;background:#E24B4A;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">この月から削除</button>
+      </div>`;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    document.getElementById('del-cancel').onclick=()=>{document.body.removeChild(overlay);fromY=null;resolve();};
+    document.getElementById('del-all').onclick=()=>{
+      // 全期間削除：開始月から
+      if(item.start){let p=item.start.split('-');fromY=parseInt(p[0]);fromM=parseInt(p[1]);}
+      else{fromY=nowY-10;fromM=1;}
+      document.body.removeChild(overlay);resolve();
+    };
+    document.getElementById('del-from-ok').onclick=()=>{
+      fromY=parseInt(document.getElementById('del-from-y').value);
+      fromM=parseInt(document.getElementById('del-from-m').value);
+      document.body.removeChild(overlay);resolve();
+    };
+  });
+  if(!fromY)return;
+
+  // DBからその月以降の該当データを削除
+  ss('spin','削除中...');
+  try{
+    // 対象データを検索して削除
+    let endDate=item.end||(nowY+'-12');
+    let p=endDate.split('-');
+    let endY2=parseInt(p[0]),endM2=parseInt(p[1]);
+    let curY=fromY,curM=fromM-1;
+    while(curY<endY2||(curY===endY2&&curM<=endM2-1)){
+      let actualDay3=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay3).padStart(2,'0');
+      await fetchWithRefresh(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      curM++;if(curM>11){curM=0;curY++;}
+    }
+    // 固定費設定の終了月を更新
+    if(fromM===1){
+      items.splice(i,1); // 1月から削除なら設定ごと削除
+    }else{
+      items[i].end=fromY+'-'+String(fromM-1).padStart(2,'0'); // 前月までに終了月を更新
+    }
+    saveFixedItems(items);
+    ss('ok','削除しました');
+    await load();
+    renderFixedList();
+  }catch(e){ss('err','削除失敗');}
+}
+
+async function editFixed(i){
+  let items=getFixedItems();
+  let item=items[i];
+
+  // 既存のDBデータを削除（開始月〜終了月の全データ）
+  ss('spin','更新中...');
+  try{
+    let now=new Date();
+    let endDate=item.end||(now.getFullYear()+'-12');
+    let p1=item.start?item.start.split('-'):[now.getFullYear().toString(),String(now.getMonth()+1)];
+    let p2=endDate.split('-');
+    let curY=parseInt(p1[0]),curM=parseInt(p1[1])-1;
+    let endY2=parseInt(p2[0]),endM2=parseInt(p2[1])-1;
+    while(curY<endY2||(curY===endY2&&curM<=endM2)){
+      let actualDay3=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay3).padStart(2,'0');
+      await fetchWithRefresh(SU+'/rest/v1/entries?date=eq.'+date+'&type=eq.'+item.type+'&category=eq.'+encodeURIComponent(item.category)+'&amount=eq.'+item.amount+'&note=like.*🔄*&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      curM++;if(curM>11){curM=0;curY++;}
+    }
+    ss('ok','削除完了');
+  }catch(e){ss('err','エラー');}
+
+  // フォームに値をセット
+  setFixedType(item.type);
+  document.getElementById('fixed-category').value=item.category;
+  document.getElementById('fixed-amount').value=item.amount;
+  document.getElementById('fixed-day').value=item.day;
+  document.getElementById('fixed-note').value=item.note?item.note.replace('🔄','').trim():'';
+  if(item.start){
+    let p=item.start.split('-');
+    document.getElementById('fixed-start-y').value=p[0];
+    document.getElementById('fixed-start-m').value=parseInt(p[1]);
+  }
+  if(item.end){
+    let p=item.end.split('-');
+    document.getElementById('fixed-end-y').value=p[0];
+    document.getElementById('fixed-end-m').value=parseInt(p[1]);
+  }
+
+  // 既存設定を削除して編集モードに
+  items.splice(i,1);
+  saveFixedItems(items);
+  renderFixedList();
+  await load();
+  // フォームにスクロール
+  document.getElementById('fixed-amount').focus();
+}
+async function applyOneFixedItem(item){
+  let now=new Date();
+  let nowY=now.getFullYear();
+  let toAdd=[];
+  let startY,startM,endY,endM;
+  if(item.start){let p=item.start.split('-');startY=parseInt(p[0]);startM=parseInt(p[1])-1;}
+  else{startY=nowY;startM=0;}
+  if(item.end){let p=item.end.split('-');endY=parseInt(p[0]);endM=parseInt(p[1])-1;}
+  else{endY=nowY;endM=11;}
+  let curY=startY,curM=startM;
+  while(curY<endY||(curY===endY&&curM<=endM)){
+    let actualDay=item.day===99?new Date(curY,curM+1,0).getDate():item.day;
+    let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(actualDay).padStart(2,'0');
+    let fixedNote=(item.note?item.note+' ':'')+'🔄';
+    let exists=annualData.some(e=>
+      e.date===date&&e.type===item.type&&e.category===item.category&&
+      e.amount===item.amount&&e.note===fixedNote
+    );
+    if(!exists){
+      toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
+    }
+    curM++;if(curM>11){curM=0;curY++;}
+  }
+  if(!toAdd.length)return;
+  let added=0;
+  for(let entry of toAdd){
+    try{
+      let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
+        method:'POST',headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify(entry)
+      });
+      if(!r.ok)continue;
+      if(r.ok)added++;
+    }catch(e){}
+  }
+  if(added>0){ss('ok','固定費・収入を'+added+'件追加しました');}
+}
+
+async function applyFixedItems(){
+  let items=getFixedItems();
+  if(!items.length)return;
+  let now=new Date();
+  let nowY=now.getFullYear(),nowM=now.getMonth();
+  let toAdd=[];
+
+  for(let item of items){
+    // 開始・終了年月をパース
+    let startY,startM,endY,endM;
+    if(item.start){let p=item.start.split('-');startY=parseInt(p[0]);startM=parseInt(p[1])-1;}
+    else{startY=nowY;startM=nowM;}
+    if(item.end){let p=item.end.split('-');endY=parseInt(p[0]);endM=parseInt(p[1])-1;}
+    else{endY=nowY;endM=11;} // 終了未指定は今年の12月まで
+
+    // 開始月から終了月まで全月分を登録
+    let curY=startY,curM=startM;
+    while(curY<endY||(curY===endY&&curM<=endM)){
+      let d=item.day;
+      let date=curY+'-'+String(curM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      // すでに存在するか確認
+      let fixedNote=(item.note?item.note+' ':'')+'🔄';
+      let exists=annualData.some(e=>
+        e.date===date&&e.type===item.type&&e.category===item.category&&
+        e.amount===item.amount&&e.note===fixedNote
+      );
+      if(!exists){
+        toAdd.push({date,type:item.type,category:item.category,amount:item.amount,note:fixedNote,user_id:userId});
+      }
+      curM++;
+      if(curM>11){curM=0;curY++;}
+    }
+  }
+  if(!toAdd.length)return;
+  let added3=0;
+  for(let entry of toAdd){
+    try{
+      let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
+        method:'POST',headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify(entry)
+      });
+      if(!r.ok)continue;
+      if(r.ok)added3++;
+    }catch(e){}
+  }
+  if(added3>0){ss('ok','固定費・収入を'+added3+'件自動追加しました');}
+}
+
+function exportCSV(){
+  // 全データをCSVに変換してダウンロード
+  let rows=[['日付','種別','カテゴリ','金額','備考']];
+  let allData=[...annualData];
+  // 重複除去
+  let seen=new Set();
+  let unique=allData.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+  unique.sort((a,b)=>a.date<b.date?-1:1);
+  unique.forEach(e=>{
+    rows.push([e.date, e.type==='inc'?'収入':'支出', e.category, e.amount, e.note||'']);
+  });
+  let csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  let blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),...[new TextEncoder().encode(csv)]],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='家計簿_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  ss('ok','エクスポートしました');
+}
+
+async function importCSV(event){
+  let file=event.target.files[0];
+  if(!file)return;
+  let text=await file.text();
+  // BOM除去
+  if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  let lines=text.split('\n').filter(l=>l.trim());
+  if(lines.length<2){alert('データがありません');return;}
+  let headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  let imported=0,errors=0;
+  let entries=[];
+  for(let i=1;i<lines.length;i++){
+    let cols=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||[];
+    cols=cols.map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"').trim());
+    let date=cols[0],type=cols[1]==='収入'?'inc':'exp',category=cols[2],amount=parseInt(cols[3]),note=cols[4]||null;
+    if(!date||!category||!amount||isNaN(amount))continue;
+    entries.push({date,type,category,amount,note:note||null,user_id:userId});
+  }
+  if(!entries.length){alert('インポートできるデータがありませんでした');return;}
+  ss('spin','インポート中...');
+  for(let entry of entries){
+    try{
+      let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
+        method:'POST',
+        headers:{...H(),'Prefer':'return=representation'},
+        body:JSON.stringify(entry)
+      });
+      if(r.ok)imported++;
+    }catch(e){}
+  }
+  if(imported>0){ss('ok',imported+'件インポートしました');await load();}
+  else{ss('err','インポート失敗');alert('インポートに失敗しました');}
+  event.target.value='';
+}
+
+function toggleSettings(){
+  let overlay=document.getElementById('settings-overlay');
+  overlay.classList.toggle('show');
+}
+function closeSettings(){
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+async function changePassword(){
+  let newPass=prompt('新しいパスワードを入力してください（6文字以上）');
+  if(!newPass||newPass.length<6){
+    if(newPass!==null)alert('パスワードは6文字以上にしてください');
+    return;
+  }
+  try{
+    let r=await fetch(SU+'/auth/v1/user',{
+      method:'PUT',
+      headers:{...H()},
+      body:JSON.stringify({password:newPass})
+    });
+    if(!r.ok)throw new Error();
+    alert('パスワードを変更しました！');
+  }catch(e){
+    alert('パスワードの変更に失敗しました');
+  }
+}
+
+async function changeName(){
+  let newName=prompt('新しい名前を入力してください', userName);
+  if(!newName||!newName.trim())return;
+  newName=newName.trim();
+  try{
+    let r=await fetch(SU+'/auth/v1/user',{
+      method:'PUT',
+      headers:{...H()},
+      body:JSON.stringify({data:{name:newName}})
+    });
+    if(!r.ok)throw new Error();
+    userName=newName;
+    localStorage.setItem('kb_name_'+userId,userName);
+    document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
+    alert('名前を変更しました！');
+  }catch(e){
+    alert('名前の変更に失敗しました');
+  }
+}
+
+function showCatDetail(category, type){
+  // annualDataから当月分のみ取得してIDで重複除去
+  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let seen=new Set();
+  let filtered=annualData.filter(e=>{
+    if(e.category!==category||e.type!==type)return false;
+    if(!e.date.startsWith(prefix))return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  if(!filtered.length)return;
+  let total=filtered.reduce((s,e)=>s+e.amount,0);
+  let color=type==='inc'?'var(--g)':'var(--r)';
+  let sign=type==='inc'?'+':'-';
+  document.getElementById('modal-title').textContent=category+'の明細';
+  document.getElementById('modal-total').textContent=sign+fy(total);
+  document.getElementById('modal-total').style.color=color;
+  // 備考別に集計（🔄を除いたキーでまとめる）
+  let noteMap={};
+  let noNote=0;
+  filtered.forEach(e=>{
+    let key=e.note?e.note.replace('🔄','').trim():'';
+    if(key){
+      if(!noteMap[key])noteMap[key]=0;
+      noteMap[key]+=e.amount;
+    }else{
+      noNote+=e.amount;
+    }
+  });
+  let entries=Object.entries(noteMap).sort((a,b)=>b[1]-a[1]);
+  if(noNote>0)entries.push(['（備考なし）',noNote]);
+  document.getElementById('modal-body').innerHTML=entries.map(([note,amt])=>{
+    return `<div class="modal-item">
+      <span class="modal-note" style="font-size:14px;color:#222">${note}</span>
+      <span class="modal-amt" style="color:${color}">${sign}${fy(amt)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('cat-modal').classList.add('show');
+}
+function closeModal(e){
+  if(e.target===document.getElementById('cat-modal')){
+    document.getElementById('cat-modal').classList.remove('show');
+  }
+}
+
+let editingId=null,editType='exp';
+
+function setEditType(t){
+  editType=t;
+  document.getElementById('edit-inc-btn').style.background=t==='inc'?'var(--g)':'';
+  document.getElementById('edit-inc-btn').style.color=t==='inc'?'#fff':'';
+  document.getElementById('edit-exp-btn').style.background=t==='exp'?'var(--r)':'';
+  document.getElementById('edit-exp-btn').style.color=t==='exp'?'#fff':'';
+  document.getElementById('edit-category').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+
+function openEditModal(id){
+  let e=data.find(e=>e.id===id);
+  if(!e)return;
+  editingId=id;
+  setEditType(e.type);
+  document.getElementById('edit-category').value=e.category;
+  document.getElementById('edit-amount').value=e.amount;
+  document.getElementById('edit-note').value=e.note||'';
+  document.getElementById('edit-date').value=e.date;
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function closeEditModal(ev){
+  if(ev.target===document.getElementById('edit-modal'))
+    document.getElementById('edit-modal').classList.remove('show');
+}
+
+async function saveEdit(){
+  let cat=document.getElementById('edit-category').value;
+  let amt=parseInt(document.getElementById('edit-amount').value);
+  let note=document.getElementById('edit-note').value.trim()||null;
+  let date=document.getElementById('edit-date').value;
+  if(!amt||amt<=0){alert('金額を入力してください');return}
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?id=eq.'+editingId+'&user_id=eq.'+userId,{
+      method:'PATCH',
+      headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({type:editType,category:cat,amount:amt,note:note,date:date})
+    });
+    if(!r.ok)throw new Error();
+    ss('ok','更新しました');
+    document.getElementById('edit-modal').classList.remove('show');
+    await load();
+  }catch(e){ss('err','更新失敗')}
+}
+
+async function delChecked(){
+  let checked=[...document.querySelectorAll('.del-check:checked')].map(el=>el.dataset.id);
+  if(!checked.length){alert('削除する記録を選択してください');return;}
+  if(!confirm(checked.length+'件の記録を削除しますか？'))return;
+  ss('spin','削除中...');
+  try{
+    for(let id of checked){
+      await fetchWithRefresh(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+      data=data.filter(e=>e.id!=id);
+      annualData=annualData.filter(e=>e.id!=id);
+    }
+    ss('ok',checked.length+'件削除しました');
+    document.getElementById('day-modal').classList.remove('show');
+    render();
+  }catch(e){ss('err','削除失敗');}
+}
+
+async function delE(id){
+  if(!confirm('この記録を削除しますか？'))return;
+  ss('spin','削除中...');
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries?id=eq.'+id+'&user_id=eq.'+userId,{method:'DELETE',headers:H()});
+    if(!r.ok)throw new Error();
+    data=data.filter(e=>e.id!==id);annualData=annualData.filter(e=>e.id!==id);
+    ss('ok','削除しました');
+  }catch(e){ss('err','削除失敗')}
+  render();
+}
+
+function setType(t){
+  ct=t;
+  document.getElementById('ib').className=t==='inc'?'ai':'';
+  document.getElementById('eb').className=t==='exp'?'ae':'';
+  document.getElementById('cs').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+
+// 祝日リスト（簡易版・日本の主な祝日）
+const HOLIDAYS={
+  '01-01':'元日','01-13':'成人の日','02-11':'建国記念の日','02-23':'天皇誕生日',
+  '03-20':'春分の日','04-29':'昭和の日','05-03':'憲法記念日','05-04':'みどりの日','05-05':'こどもの日',
+  '07-21':'海の日','08-11':'山の日','09-15':'敬老の日','09-23':'秋分の日',
+  '10-13':'スポーツの日','11-03':'文化の日','11-23':'勤労感謝の日'
+};
+function getHolidayName(y,m,d){
+  let key=String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  return HOLIDAYS[key]||null;
+}
+function isHoliday(y,m,d){return !!getHolidayName(y,m,d);}
+function getDayColor(y,m,d){
+  let dow=new Date(y,m,d).getDay();
+  if(dow===0||isHoliday(y,m,d))return '#E24B4A'; // 日・祝=赤
+  if(dow===6)return '#378ADD'; // 土=青
+  return '#222'; // 平日=黒
+}
+
+function openAddModal(key,y,m,d){
+  let isToday=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+  let color=getDayColor(y,m,d);
+  let dateStr=isToday?'今日（'+(m+1)+'月'+d+'日）':(m+1)+'月'+d+'日';
+  document.getElementById('add-modal-title').innerHTML='記録を追加　<span style="font-size:16px;color:'+color+'">'+dateStr+'</span>';
+  document.getElementById('add-modal').classList.add('show');
+}
+function closeAddModal(e){
+  if(e.target===document.getElementById('add-modal'))
+    document.getElementById('add-modal').classList.remove('show');
+}
+let ct2='inc';
+function setType2(t){
+  ct2=t;
+  document.getElementById('ib2').style.background=t==='inc'?'var(--g)':'';
+  document.getElementById('ib2').style.color=t==='inc'?'#fff':'';
+  document.getElementById('eb2').style.background=t==='exp'?'var(--r)':'';
+  document.getElementById('eb2').style.color=t==='exp'?'#fff':'';
+  document.getElementById('cs2').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+}
+async function addE2(){
+  let a=parseInt(document.getElementById('ai2').value);
+  if(!a||a<=0){alert('金額を入力してください');return}
+  let c=document.getElementById('cs2').value;
+  let btn=document.getElementById('ab2');
+  btn.disabled=true;btn.textContent='保存中';ss('spin','保存中...');
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
+      method:'POST',headers:{...H(),'Prefer':'return=representation'},
+      body:JSON.stringify({date:sel,type:ct2,category:c,amount:a,user_id:userId,note:document.getElementById('note2').value.trim()||null})
+    });
+    if(!r.ok)throw new Error((await r.json()).message||r.status);
+    let noteVal=document.getElementById('note2').value.trim();
+    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
+    document.getElementById('ai2').value='';
+    document.getElementById('note2').value='';
+    ss('ok','保存しました');
+    document.getElementById('add-modal').classList.remove('show');
+    await load();
+  }catch(e){ss('err','保存失敗');alert('保存失敗: '+e.message)}
+  btn.disabled=false;btn.textContent='追加';
+}
+
+function clickDay(key,y,m,d){
+  sel=key;
+  updateDateHint();
+  render();
+  // 当日以外なら日付ラベルを表示
+  let label=document.getElementById('sel-date-label');
+  let isToday=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+  let color=getDayColor(y,m,d);
+  label.textContent=(m+1)+'月'+d+'日'+(isToday?' (今日)':'');
+  label.style.color=color;
+  label.style.display='inline';
+  // 日付モーダルを表示
+  let de=data.filter(e=>e.date===key);
+  let title=y+'年'+(m+1)+'月'+d+'日';
+  document.getElementById('day-modal-title').textContent=title;
+  if(!de.length){
+    document.getElementById('day-modal-body').innerHTML='<div style="color:#aaa;text-align:center;padding:20px">この日の記録はありません</div>';
+    document.getElementById('day-modal-total').textContent='';
+  }else{
+    let inc=de.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
+    let exp=de.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
+    let bal=inc-exp;
+    document.getElementById('day-modal-body').innerHTML=
+      '<div style="padding:8px 0 4px;display:flex;justify-content:flex-end"><button onclick="delChecked()" style="font-size:13px;padding:5px 12px;background:var(--r);color:#fff;border:none;border-radius:8px;cursor:pointer">選択削除</button></div>'+
+      de.map(e=>`
+      <div class="modal-item" style="cursor:pointer">
+        <input type="checkbox" class="del-check" data-id="${e.id}" style="width:18px;height:18px;margin-right:4px;flex-shrink:0" onclick="event.stopPropagation()">
+        <div style="flex:1" onclick="openEditModal('${e.id}');document.getElementById('day-modal').classList.remove('show')">
+          <div style="font-size:14px;font-weight:600;color:#222">${e.category}</div>
+          <div style="font-size:12px;color:#aaa">${e.note||'備考なし'}</div>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:${e.type==='inc'?'var(--g)':'var(--r)'}" onclick="openEditModal('${e.id}');document.getElementById('day-modal').classList.remove('show')">${e.note&&e.note.includes('🔄')?'🔄 ':''}${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
+      </div>`).join('');
+    let balColor=bal>=0?'var(--g)':'var(--r)';
+    document.getElementById('day-modal-total').textContent=(bal>=0?'+':'-')+fy(Math.abs(bal));
+    document.getElementById('day-modal-total').style.color=balColor;
+  }
+  // フォームが画面最上部に来るようスクロール（ヘッダー分を引く）
+  let topbar=document.querySelector('.topbar');
+  let topbarH=topbar?topbar.offsetHeight:0;
+  let bar=document.getElementById('sumrow-bar');
+  let barH=bar?bar.offsetHeight:0;
+  let labelEl=document.getElementById('sel-date-label');
+  let target=labelEl&&labelEl.style.display!=='none'?labelEl:document.querySelector('.ph');
+  let targetTop=target.getBoundingClientRect().top+window.scrollY-topbarH-barH-8;
+  window.scrollTo({top:targetTop,behavior:'smooth'});
+  // 記録がある日はポップアップも表示
+  let de2=data.filter(e=>e.date===key);
+  if(de2.length>0){
+    setTimeout(function(){document.getElementById('day-modal').classList.add('show');},300);
+  }
+}
+
+function closeDayModal(e){
+  if(e.target===document.getElementById('day-modal'))
+    document.getElementById('day-modal').classList.remove('show');
+}
+
+function drawPie(canvasId,legendId,type){
+  // IDで重複除去してから集計
+  let prefix2=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+  let seen=new Set();
+  let filtered=annualData.filter(e=>{
+    if(e.type!==type)return false;
+    if(!e.date.startsWith(prefix2))return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  let totals={};
+  filtered.forEach(e=>{totals[e.category]=(totals[e.category]||0)+e.amount});
+  let ents=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  let total=ents.reduce((s,e)=>s+e[1],0);
+  let colors=type==='inc'?INC_COLORS:ents.map(e=>EXP_COLOR_MAP[e[0]]||'#888888');
+  let cx=55,cy=55,r=48,ri=22;
+  let canvas=document.getElementById(canvasId);
+  canvas.style.cursor='pointer';
+  canvas.onclick=function(ev){
+    let rect=canvas.getBoundingClientRect();
+    let x=ev.clientX-rect.left-55,y=ev.clientY-rect.top-55;
+    let angle=Math.atan2(y,x)+Math.PI/2;
+    let adj=angle<0?angle+Math.PI*2:angle;
+    let s2=-Math.PI/2,total2=ents.reduce((s,e)=>s+e[1],0);
+    for(let i=0;i<ents.length;i++){
+      let sl=(ents[i][1]/total2)*Math.PI*2;
+      if(adj>=s2&&adj<s2+sl){showCatDetail(ents[i][0],type);break;}
+      s2+=sl;
+    }
+  };
+  let ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,110,110);
+  let leg=document.getElementById(legendId);
+  if(!ents.length){
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#e8e8e8';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#f7f7f7';ctx.fill();
+    leg.innerHTML='<div class="no-data">データなし</div>';return;
+  }
+  let start=-Math.PI/2;
+  ents.forEach((e,i)=>{
+    let slice=(e[1]/total)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+slice);ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(start),cy+r*Math.sin(start));
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    start+=slice;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#f7f7f7';ctx.fill();
+  ctx.fillStyle='#555';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='bold 9px -apple-system,sans-serif';ctx.fillText('合計',cx,cy-6);
+  ctx.font='bold 10px -apple-system,sans-serif';ctx.fillStyle='#222';ctx.fillText(fy(total),cx,cy+6);
+  leg.innerHTML=ents.map((e,i)=>`
+    <div class="leg-item" onclick="showCatDetail('${e[0]}','${type}')" style="cursor:pointer">
+      <div class="leg-dot" style="background:${colors[i%colors.length]}"></div>
+      <span class="leg-label">${e[0]}</span><span class="leg-pct">${Math.round(e[1]/total*100)}%</span>
+    </div>
+    <div class="leg-amt" onclick="showCatDetail('${e[0]}','${type}')" style="cursor:pointer">${fy(e[1])}</div>
+  `).join('');
+}
+
+function renderAnnual(){
+  document.getElementById('annual-year').textContent=vy+'年';
+  let tbody=document.getElementById('annual-body');
+  let currentMonth=today.getFullYear()===vy?today.getMonth():(vy<today.getFullYear()?11:-1);
+  let rows='';let cumInc=0,cumExp=0;
+  for(let m=0;m<12;m++){
+    let prefix=vy+'-'+String(m+1).padStart(2,'0')+'-';
+    let md=annualData.filter(e=>e.date.startsWith(prefix));
+    let isFuture=m>currentMonth;
+    let isCurrent=m===currentMonth&&vy===today.getFullYear();
+    let prefix2=vy+'-'+String(m+1).padStart(2,'0')+'-';
+    let md2=annualData.filter(e=>e.date.startsWith(prefix2));
+    let hasFutureData=md2.length>0;
+    if(isFuture&&!hasFutureData){
+      rows+=`<tr class="future"><td>${m+1}月</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+    }else{
+      let mInc=md.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
+      let mExp=md.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
+      cumInc+=mInc;cumExp+=mExp;let mBal=mInc-mExp;
+      let mRate=mInc>0?Math.round(mExp/mInc*100):'-';
+      let mRateClass=typeof mRate==='number'?(mRate>=100?'bal-neg':mRate>=90?'exp-val':mRate>=80?'warn-val':'inc-val'):'';
+      let bal2=mInc-mExp;
+      let rowClass=isCurrent?'current-month':bal2>0?'bal-plus-row':bal2<0?'bal-minus-row':'';
+      rows+=`<tr class="${rowClass}">
+        <td>${m+1}月</td>
+        <td class="inc-val">${mInc>0?fy(mInc):'-'}</td>
+        <td class="exp-val">${mExp>0?fy(mExp):'-'}</td>
+        <td class="${mRateClass}">${typeof mRate==='number'?mRate+'%':'-'}</td>
+        <td class="${mBal>=0?'bal-pos':'bal-neg'}">${mInc===0&&mExp===0?'-':(mBal>=0?'+':'-')+fy(Math.abs(mBal))}</td>
+      </tr>`;
+    }
+  }
+  let cumBal=cumInc-cumExp;
+  let cumRate=cumInc>0?Math.round(cumExp/cumInc*100):0;
+  let cumRateClass=cumRate>=100?'bal-neg':cumRate>=90?'exp-val':cumRate>=80?'warn-val':'inc-val';
+  rows+=`<tr class="total-row"><td>累計</td><td class="inc-val">${fy(cumInc)}</td><td class="exp-val">${fy(cumExp)}</td><td class="${cumRateClass}">${cumRate}%</td><td class="${cumBal>=0?'bal-pos':'bal-neg'}">${(cumBal>=0?'+':'-')+fy(Math.abs(cumBal))}</td></tr>`;
+  tbody.innerHTML=rows;
+}
+
+function render(){
+  // 重複除去
+  data=dedup(data);
+  annualData=dedup(annualData);
+  let g=document.getElementById('grid');g.innerHTML='';
+  document.getElementById('mlbl').textContent=(vm+1)+'月';
+  document.getElementById('ylbl').textContent=vy+'年';
+  applySeasonBg();
+  let first=new Date(vy,vm,1).getDay();
+  let dim=new Date(vy,vm+1,0).getDate();
+  let prev=new Date(vy,vm,0).getDate();
+  let cells=[];
+  for(let i=0;i<first;i++)cells.push({d:prev-first+1+i,cur:false});
+  for(let d=1;d<=dim;d++)cells.push({d,cur:true});
+  while(cells.length%7!==0)cells.push({d:cells.length-first-dim+1,cur:false});
+  cells.forEach((c,i)=>{
+    let dow=i%7,div=document.createElement('div');
+    let cy2=vy,cm=vm,cd=c.d;
+    if(!c.cur){if(i<7){cm--;if(cm<0){cm=11;cy2--;}}else{cm++;if(cm>11){cm=0;cy2++;}}}
+    let key=fk(cy2,cm,cd);
+    let isTod=cy2===today.getFullYear()&&cm===today.getMonth()&&cd===today.getDate();
+    div.className='cell'+(c.cur?'':' other')+(isTod?' today':'')+(key===sel?' sel':'');
+    let dn=document.createElement('div');
+    let hname=getHolidayName(cy2,cm,cd);
+    dn.className='cn'+(dow===0||hname?' sun':dow===6?' sat':'')+(isTod?' tod':'');
+    dn.textContent=cd;div.appendChild(dn);
+    if(hname){
+      let hl=document.createElement('div');
+      hl.style.cssText='font-size:7px;color:var(--r);line-height:1.1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px';
+      hl.textContent=hname;div.appendChild(hl);
+    }
+    if(c.cur){
+      let de=data.filter(e=>e.date===key);
+      let dayInc=de.filter(e=>e.type==='inc').reduce((s,e)=>s+e.amount,0);
+      let dayExp=de.filter(e=>e.type==='exp').reduce((s,e)=>s+e.amount,0);
+      if(dayInc>0||dayExp>0){
+        let dotsWrap=document.createElement('div');
+        dotsWrap.style.cssText='display:flex;justify-content:center;gap:3px;margin-top:3px';
+        if(dayInc>0){let d=document.createElement('div');d.style.cssText='width:6px;height:6px;border-radius:50%;background:var(--g)';dotsWrap.appendChild(d);}
+        if(dayExp>0){let d=document.createElement('div');d.style.cssText='width:6px;height:6px;border-radius:50%;background:var(--r)';dotsWrap.appendChild(d);}
+        div.appendChild(dotsWrap);
+      }
+      // メモがあれば📝マークを表示
+      let memos=getMemos();
+      if(memos[key]){
+        let memoMark=document.createElement('div');
+        memoMark.style.cssText='font-size:8px;text-align:center;line-height:1;margin-top:1px';
+        memoMark.textContent='📝';
+        div.appendChild(memoMark);
+      }
+      let _k=key,_y=cy2,_m=cm,_d=cd;
+      // タップで記録、長押しでメモ
+      let pressTimer=null;
+      div.addEventListener('touchstart',function(e){
+        pressTimer=setTimeout(function(){
+          pressTimer=null;
+          openMemoModal(_k,_y,_m,_d);
+        },600);
+      },{passive:true});
+      div.addEventListener('touchend',function(e){
+        if(pressTimer){clearTimeout(pressTimer);pressTimer=null;clickDay(_k,_y,_m,_d);}
+      });
+      div.addEventListener('touchmove',function(e){
+        if(pressTimer){clearTimeout(pressTimer);pressTimer=null;}
+      },{passive:true});
+      div.onclick=function(e){if(!('ontouchstart' in window))clickDay(_k,_y,_m,_d);};
+    }
+    g.appendChild(div);
+  });
+  let inc=0,exp=0;
+  data.forEach(e=>{if(e.type==='inc')inc+=e.amount;else exp+=e.amount;});
+  document.getElementById('si').textContent=fy(inc);
+  document.getElementById('se').textContent=fy(exp);
+  let bal=inc-exp;
+  let sbe=document.getElementById('sb');
+  sbe.textContent=(bal<0?'-':'')+fy(bal);sbe.className='sv '+(bal>=0?'b':'e');
+  drawPie('pie-inc','legend-inc','inc');
+  drawPie('pie-exp','legend-exp','exp');
+  renderAnnual();
+  renderBudgetBars();
+  renderBarChart();
+  renderTrendChart();
+  let list=document.getElementById('elist');
+  if(!sel){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
+  let de=data.filter(e=>e.date===sel);
+  if(!de.length){list.innerHTML='<div class="em">この日の記録はありません</div>';return}
+  list.innerHTML=de.map(e=>`
+  <div class="er" onclick="openEditModal('${e.id}')" style="cursor:pointer">
+    <div style="flex:1;overflow:hidden">
+      <div class="ec">${e.category}</div>
+      <span style="font-size:11px;color:#aaa">${e.note||'備考なし'}</span>
+    </div>
+    <span class="ea ${e.type==='inc'?'i':'e'}">${e.type==='inc'?'+':'-'}${fy(e.amount)}</span>
+    <button class="db" onclick="event.stopPropagation();delE('${e.id}')">✕</button>
+  </div>
+`).join('');
+}
+
+document.getElementById('prev').onclick=function(){vm--;if(vm<0){vm=11;vy--;}sel=null;updateDateHint();load()};
+document.getElementById('next').onclick=function(){vm++;if(vm>11){vm=0;vy++;}sel=null;updateDateHint();load()};
+document.getElementById('prev-year').onclick=function(){vy--;sel=null;updateDateHint();load()};
+document.getElementById('next-year').onclick=function(){vy++;sel=null;updateDateHint();load()};
+
+setType('inc');
+tryAutoLogin();
+
+// スワイプで月切り替え
+(function(){
+  let startX=0,startY=0;
+  let cal=document.getElementById('app-screen');
+  cal.addEventListener('touchstart',function(e){
+    startX=e.touches[0].clientX;
+    startY=e.touches[0].clientY;
+  },{passive:true});
+  cal.addEventListener('touchend',function(e){
+    let dx=e.changedTouches[0].clientX-startX;
+    let dy=e.changedTouches[0].clientY-startY;
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
+      if(dx<0){
+        // 左スワイプ → 次の月
+        vm++;if(vm>11){vm=0;vy++;}
+      }else{
+        // 右スワイプ → 前の月
+        vm--;if(vm<0){vm=11;vy--;}
+      }
+      sel=null;
+      updateDateHint();
+      load();
+    }
+  },{passive:true});
+  updateNoteHistory();
+  setType2('inc');
+  // sumrow-barの位置を即座にセット
+  setTimeout(function(){
+    let tb=document.querySelector('.topbar');
+    if(tb){
+      let h=tb.offsetHeight;
+      document.documentElement.style.setProperty('--topbar-h',h+'px');
+      let bar=document.getElementById('sumrow-bar');
+      if(bar)bar.style.top=h+'px';
+    }
+  },100);
+  applyFixedItems();
+})();
+</script>
+</body>
+</html>
