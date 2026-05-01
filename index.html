@@ -1497,8 +1497,9 @@ async function addE(){
     document.getElementById('ai').value='';
     document.getElementById('note').value='';
     ss('ok','保存しました');
-  }catch(e){ss('err','保存失敗');showToast(e.offline?'オフライン中です。ネット接続を確認してください。':'保存に失敗しました。時間をおいて再試行してください','err',5000)}
-  btn.disabled=false;btn.textContent='追加';render();
+    await load();
+  }catch(e){ss('err','保存失敗');showToast(e.offline?'オフライン中です。ネット接続を確認してください。':'保存に失敗しました。時間をおいて再試行してください','err',5000);render();}
+  btn.disabled=false;btn.textContent='追加';
 }
 
 // ===== 予算機能 =====
@@ -2416,7 +2417,7 @@ async function addE2(){
     ss('ok','保存しました');
     document.getElementById('add-modal').classList.remove('show');
     await load();
-  }catch(e){ss('err','保存失敗');showToast(e.offline?'オフライン中です。ネット接続を確認してください。':'保存に失敗しました。時間をおいて再試行してください','err',5000)}
+  }catch(e){ss('err','保存失敗');showToast(e.offline?'オフライン中です。ネット接続を確認してください。':'保存に失敗しました。時間をおいて再試行してください','err',5000);await loadAnnual();render();}
   btn.disabled=false;btn.textContent='追加';
 }
 
