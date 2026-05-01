@@ -161,6 +161,20 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .store-picker-item{padding:12px 14px;border-bottom:1px solid var(--border);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .store-picker-item:active{background:var(--bg2)}
 .store-picker-empty{font-size:13px;color:#aaa;text-align:center;padding:20px 0}
+/* OCR */
+.ocr-btn{width:100%;padding:11px;border:2px dashed #b8dfcf;border-radius:10px;background:#f0faf5;color:var(--gd);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px}
+.ocr-btn:active{opacity:.7}
+.ocr-result{border:1px solid var(--border);border-radius:10px;background:#fafafa;padding:12px;margin-bottom:12px;display:none}
+.ocr-result.show{display:block}
+.ocr-result-title{font-size:12px;color:#888;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.ocr-field{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.ocr-field:last-child{border-bottom:none}
+.ocr-field-label{color:#888}
+.ocr-field-val{font-weight:600;color:#222}
+.ocr-apply-btn{width:100%;margin-top:10px;padding:9px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.ocr-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;color:#888;font-size:13px}
+.ocr-spin{width:18px;height:18px;border:2px solid #ddd;border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -629,6 +643,18 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
       <button class="modal-close" onclick="document.getElementById('add-modal').classList.remove('show')">✕</button>
     </div>
     <div class="modal-body" style="padding:16px">
+      <!-- OCR -->
+      <button class="ocr-btn" onclick="document.getElementById('ocr-file').click()">
+        <span>📷</span>レシートを撮影して自動入力
+      </button>
+      <input type="file" id="ocr-file" accept="image/*" capture="environment" style="display:none" onchange="handleOcrFile(event)">
+      <div class="ocr-result" id="ocr-result">
+        <div class="ocr-result-title">
+          <span>📋 読み取り結果</span>
+          <button onclick="document.getElementById('ocr-result').classList.remove('show')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:0">✕</button>
+        </div>
+        <div id="ocr-result-body"></div>
+      </div>
       <div style="margin-bottom:12px">
         <div style="display:flex;gap:8px">
           <button id="ib2" onclick="setType2('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
@@ -745,6 +771,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 </div>
 
 <script>
+const GVISION_KEY='ここにコピーしたキーを貼り付け'; // Google Vision APIキー
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
 const INC=['給与','副業','ボーナス','配当','その他収入'];
@@ -2130,6 +2157,132 @@ function render(){
     <button class="db" onclick="event.stopPropagation();delE('${e.id}')">✕</button>
   </div>
 `).join('');
+}
+
+// ===== OCR レシート読み取り =====
+async function handleOcrFile(e){
+  let file=e.target.files[0];
+  e.target.value='';
+  if(!file)return;
+  let resultEl=document.getElementById('ocr-result');
+  let bodyEl=document.getElementById('ocr-result-body');
+  resultEl.classList.add('show');
+  bodyEl.innerHTML='<div class="ocr-loading"><div class="ocr-spin"></div>読み取り中...</div>';
+  try{
+    let b64=await fileToBase64(file);
+    let text=await callVisionAPI(b64);
+    if(!text){bodyEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:12px">テキストが読み取れませんでした</div>';return;}
+    let parsed=parseReceiptText(text);
+    showOcrResult(parsed,bodyEl);
+  }catch(err){
+    bodyEl.innerHTML='<div style="color:var(--r);font-size:13px;padding:12px">⚠️ '+err.message+'</div>';
+  }
+}
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    let reader=new FileReader();
+    reader.onload=function(ev){
+      let img=new Image();
+      img.onload=function(){
+        let canvas=document.createElement('canvas');
+        let maxW=1200,maxH=1600,w=img.width,h=img.height;
+        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+        if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.85).split(',')[1]);
+      };
+      img.onerror=reject;
+      img.src=ev.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function callVisionAPI(b64){
+  if(!GVISION_KEY||GVISION_KEY.includes('ここに')||GVISION_KEY.startsWith('YOUR')){
+    throw new Error('Google Vision APIキーが未設定です。コード内のGVISION_KEYを実際のキーに置き換えてください');
+  }
+  let res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+GVISION_KEY,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({requests:[{image:{content:b64},features:[{type:'TEXT_DETECTION',maxResults:1}]}]})
+  });
+  if(!res.ok){
+    let err=await res.json().catch(()=>({}));
+    throw new Error(err.error?.message||'Vision API エラー ('+res.status+')');
+  }
+  let d=await res.json();
+  return d.responses?.[0]?.fullTextAnnotation?.text||d.responses?.[0]?.textAnnotations?.[0]?.description||'';
+}
+function parseReceiptText(text){
+  let lines=text.split('\n').map(l=>l.trim()).filter(l=>l);
+  // --- 金額 ---
+  let amount=null;
+  let kwPats=[/合\s*計/,/小\s*計/,/税\s*込/,/お\s*会\s*計/,/請\s*求/,/お\s*支\s*払/,/total/i,/amount/i];
+  outer:for(let line of lines){
+    for(let kw of kwPats){
+      if(kw.test(line)){
+        let nums=(line.match(/[¥￥]?\s*([0-9,，]+)/g)||[])
+          .map(n=>parseInt(n.replace(/[¥￥,，\s]/g,'')))
+          .filter(n=>n>=100&&n<1000000);
+        if(nums.length){amount=Math.max(...nums);break outer;}
+      }
+    }
+  }
+  if(!amount){
+    let all=[];
+    lines.forEach(l=>(l.match(/[¥￥]?\s*\d{3,6}/g)||[])
+      .forEach(n=>{let v=parseInt(n.replace(/[¥￥,，\s]/g,''));if(v>=100&&v<100000)all.push(v);}));
+    if(all.length)amount=Math.max(...all);
+  }
+  // --- 日付 ---
+  let date=null;
+  let now=new Date();
+  for(let line of lines){
+    let m=line.match(/(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+    if(m){date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
+    m=line.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+    if(m){date=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
+    m=line.match(/令和\s*(\d+)年\s*(\d{1,2})月\s*(\d{1,2})日/);
+    if(m){let y=2018+parseInt(m[1]);date=y+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
+    m=line.match(/R(\d+)[\.\/](\d{1,2})[\.\/](\d{1,2})/);
+    if(m){let y=2018+parseInt(m[1]);date=y+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}
+    m=line.match(/(\d{2})[\/\.](\d{1,2})[\/\.](\d{1,2})/);
+    if(m){let y=2000+parseInt(m[1]);if(y<=now.getFullYear()+1){date=y+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');break;}}
+  }
+  if(!date)date=fk(now.getFullYear(),now.getMonth(),now.getDate());
+  // --- お店名 ---
+  let store='';
+  for(let line of lines){
+    if(line.length>=2&&!/^[\d\s¥￥\-\/\.\*＊]+$/.test(line)&&!/^\d+$/.test(line)){
+      store=line.replace(/\s+/g,' ').trim().slice(0,30);break;
+    }
+  }
+  return {amount,date,store};
+}
+function showOcrResult(parsed,bodyEl){
+  let html='';
+  if(parsed.store) html+=`<div class="ocr-field"><span class="ocr-field-label">お店</span><span class="ocr-field-val">${parsed.store}</span></div>`;
+  if(parsed.amount) html+=`<div class="ocr-field"><span class="ocr-field-label">合計金額</span><span class="ocr-field-val" style="color:var(--r)">¥${parsed.amount.toLocaleString()}</span></div>`;
+  if(parsed.date){
+    let p=parsed.date.split('-');
+    html+=`<div class="ocr-field"><span class="ocr-field-label">日付</span><span class="ocr-field-val">${p[0]}年${parseInt(p[1])}月${parseInt(p[2])}日</span></div>`;
+  }
+  if(!parsed.amount&&!parsed.store){
+    bodyEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:12px">金額が読み取れませんでした。手動で入力してください。</div>';
+    return;
+  }
+  let safeJson=JSON.stringify(parsed).replace(/"/g,'&quot;');
+  html+=`<button class="ocr-apply-btn" onclick='applyOcrResult(${JSON.stringify(parsed)})'>この内容をフォームに反映</button>`;
+  bodyEl.innerHTML=html;
+}
+function applyOcrResult(parsed){
+  if(parsed.amount) document.getElementById('ai2').value=parsed.amount;
+  if(parsed.store) document.getElementById('note2').value=parsed.store;
+  if(parsed.date){sel=parsed.date;updateDateHint();render();}
+  setType2('exp');
+  document.getElementById('ocr-result').classList.remove('show');
+  ss('ok','レシートの内容をフォームに反映しました');
 }
 
 // ===== お店管理機能 =====
