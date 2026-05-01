@@ -128,7 +128,7 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
 .settings-btn{background:rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.8);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
 .settings-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:999}
 .settings-overlay.show{display:block}
-.settings-menu{position:absolute;top:56px;right:12px;background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;min-width:200px}
+.settings-menu{position:absolute;top:56px;right:12px;background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow-x:hidden;overflow-y:auto;min-width:200px;max-height:calc(100vh - 80px)}
 .settings-item{display:flex;align-items:center;gap:12px;padding:15px 20px;font-size:15px;color:#333;cursor:pointer;border-bottom:1px solid var(--border)}
 .settings-item:last-child{border-bottom:none}
 .settings-item:hover{background:var(--bg2)}
@@ -281,12 +281,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     <!-- 設定オーバーレイ -->
     <div class="settings-overlay" id="settings-overlay" onclick="closeSettings()">
       <div class="settings-menu" onclick="event.stopPropagation()">
-        <div class="settings-item" onclick="changeName();closeSettings()">
-          <span class="settings-icon">✏️</span>名前を変更
-        </div>
-        <div class="settings-item" onclick="changePassword();closeSettings()">
-          <span class="settings-icon">🔑</span>パスワード変更
-        </div>
         <label class="settings-item" for="budget-toggle" style="cursor:pointer">
           <span class="settings-icon">🎯</span>
           <span style="flex:1">月間予算</span>
@@ -295,21 +289,14 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
             <div class="toggle-track"></div>
           </div>
         </label>
-        <div class="settings-item" onclick="openFixedModal();closeSettings()">
-          <span class="settings-icon">🔄</span>固定費・収入の設定
+        <div class="settings-item" onclick="openPatternModal();closeSettings()">
+          <span class="settings-icon">⚡️</span>よく使うパターン
         </div>
-        <div class="settings-item" onclick="exportCSV();closeSettings()">
-          <span class="settings-icon">📤</span>CSVエクスポート
-        </div>
-        <div class="settings-item" onclick="document.getElementById('import-file').click();closeSettings()">
-          <span class="settings-icon">📥</span>CSVインポート
-        </div>
-        <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
         <div class="settings-item" onclick="openStoreModal();closeSettings()">
           <span class="settings-icon">🏪</span>よく使うお店
         </div>
-        <div class="settings-item" onclick="openPatternModal();closeSettings()">
-          <span class="settings-icon">⚡️</span>よく使うパターン
+        <div class="settings-item" onclick="openFixedModal();closeSettings()">
+          <span class="settings-icon">🔄</span>固定費・収入の設定
         </div>
         <label class="settings-item" for="weekly-toggle" style="cursor:pointer">
           <span class="settings-icon">📅</span>
@@ -319,6 +306,19 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
             <div class="toggle-track"></div>
           </div>
         </label>
+        <div class="settings-item" onclick="exportCSV();closeSettings()">
+          <span class="settings-icon">📤</span>CSVエクスポート
+        </div>
+        <div class="settings-item" onclick="document.getElementById('import-file').click();closeSettings()">
+          <span class="settings-icon">📥</span>CSVインポート
+        </div>
+        <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(event)">
+        <div class="settings-item" onclick="changeName();closeSettings()">
+          <span class="settings-icon">✏️</span>名前を変更
+        </div>
+        <div class="settings-item" onclick="changePassword();closeSettings()">
+          <span class="settings-icon">🔑</span>パスワード変更
+        </div>
         <div class="settings-item" onclick="showGuide();closeSettings()">
           <span class="settings-icon">📖</span>使い方ガイド
         </div>
