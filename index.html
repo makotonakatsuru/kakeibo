@@ -445,6 +445,13 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
     </div>
     <div class="modal-body" style="padding:16px;max-height:75vh;overflow-y:auto">
       <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#e8f4fd;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">☁️ クラウド同期</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            収支データ・よく使うお店・固定費設定はすべてクラウドに保存されます。<br>
+            スマホとPCなど<strong>複数の端末</strong>でログインするだけで同じデータを共有できます。
+          </div>
+        </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">📅 記録の追加</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
@@ -457,7 +464,14 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <div style="font-size:13px;color:#555;line-height:1.8">
             設定→🏪よく使うお店からお店名を登録できます。<br>
             記録追加時に備考欄の<strong>🏪ボタン</strong>をタップすると登録済みのお店をワンタップで選択できます。<br>
-            スーパーやコンビニなどよく行くお店を登録しておくと便利です。
+            お店データはクラウドに保存されるため端末をまたいで利用できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費・収入の自動登録</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→🔄固定費・収入の設定から毎月の給与や家賃などを登録すると自動で記録されます。<br>
+            設定内容はクラウドに保存されるため端末が変わっても引き継がれます。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -472,12 +486,6 @@ select,input[type=number]{font-size:18px;padding:12px 14px;border:1px solid var(
           <div style="font-size:13px;color:#555;line-height:1.8">
             記録がある日（●マーク）をタップするとその日の記録一覧が表示されます。<br>
             記録をタップすると編集、✕で削除できます。
-          </div>
-        </div>
-        <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費・収入の自動登録</div>
-          <div style="font-size:13px;color:#555;line-height:1.8">
-            設定→🔄固定費・収入の設定から毎月の給与や家賃などを登録すると自動で記録されます。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -977,7 +985,7 @@ async function showApp(){
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
-  await loadFixedItems();
+  await Promise.all([loadFixedItems(),loadStores()]);
   load();
 }
 
@@ -2166,11 +2174,41 @@ function render(){
 }
 
 // ===== お店管理機能 =====
+let storesCache=null;
+async function loadStores(){
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/user_settings?user_id=eq.'+userId+'&select=shop_items',{headers:H()});
+    if(r.ok){
+      let d=await r.json();
+      if(d.length){
+        storesCache=d[0].shop_items||[];
+      }else{
+        let local=JSON.parse(localStorage.getItem('stores_'+userId)||'[]');
+        storesCache=local;
+        await persistStores(local);
+      }
+    }else{
+      storesCache=JSON.parse(localStorage.getItem('stores_'+userId)||'[]');
+    }
+  }catch(e){
+    storesCache=JSON.parse(localStorage.getItem('stores_'+userId)||'[]');
+  }
+}
+async function persistStores(stores){
+  try{
+    await fetchWithRefresh(SU+'/rest/v1/user_settings',{
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({user_id:userId,shop_items:stores,updated_at:new Date().toISOString()})
+    });
+  }catch(e){}
+}
 function getStores(){
-  return JSON.parse(localStorage.getItem('stores_'+userId)||'[]');
+  return storesCache||[];
 }
 function saveStores(stores){
-  localStorage.setItem('stores_'+userId,JSON.stringify(stores));
+  storesCache=stores;
+  persistStores(stores);
 }
 function renderStoreList(){
   let stores=getStores();
