@@ -2248,26 +2248,78 @@ function exportCSV(){
   ss('ok','エクスポートしました');
 }
 
+function parseCSVLine(line){
+  let result=[],current='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    let c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){current+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(current.trim());current='';}
+    else current+=c;
+  }
+  result.push(current.trim());
+  return result;
+}
+const YAYOI_CAT_MAP={
+  '仕入':'仕入','外注工賃':'外注費','外注費':'外注費',
+  '交通費':'交通費','旅費交通費':'交通費','車両費':'交通費',
+  '通信費':'通信費','広告費':'広告費','広告宣伝費':'広告費',
+  '接待交際費':'接待費','接待費':'接待費','会議費':'接待費',
+  '地代家賃':'家賃・地代','家賃':'家賃・地代','家賃・地代':'家賃・地代',
+  '水道光熱費':'水道光熱費','電気代':'水道光熱費',
+  '消耗品費':'消耗品費','新聞図書費':'消耗品費','研修費':'消耗品費',
+  '保険料':'保険料','租税公課':'税金・公課','税金・公課':'税金・公課',
+  '雑費':'雑費','福利厚生費':'雑費','修繕費':'雑費','減価償却費':'雑費'
+};
 async function importCSV(event){
   let file=event.target.files[0];
   if(!file)return;
   let text=await file.text();
-  // BOM除去
   if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
   let lines=text.split('\n').filter(l=>l.trim());
-  if(lines.length<2){showToast('データがありません','warn');return;}
-  let headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
-  let imported=0,errors=0;
+  if(!lines.length){showToast('データがありません','warn');return;}
   let entries=[];
-  for(let i=1;i<lines.length;i++){
-    let cols=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||[];
-    cols=cols.map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"').trim());
-    let date=cols[0],type=(cols[1]==='収入')?'inc':'exp',category=cols[2],amount=parseInt(cols[3]),note=cols[4]||null;
-    if(!date||!category||!amount||isNaN(amount))continue;
-    entries.push({date,type,category,amount,note:note||null,user_id:userId});
+  // 弥生形式検出: 先頭列が数字コード かつ 4列目がYYYY/MM/DD
+  let firstCols=parseCSVLine(lines[0]);
+  let isYayoi=firstCols.length>=20&&/^\d{4}$/.test(firstCols[0])&&/^\d{4}\/\d{2}\/\d{2}$/.test(firstCols[3]);
+  if(isYayoi){
+    const SKIP=['普通預金','当座預金','現金','受取報酬の源泉徴収税','元入金','事業主貸','事業主借'];
+    for(let line of lines){
+      let c=parseCSVLine(line);
+      if(c.length<20)continue;
+      let dateStr=c[3];
+      if(!/^\d{4}\/\d{2}\/\d{2}$/.test(dateStr))continue;
+      let date=dateStr.replace(/\//g,'-');
+      let debit=c[4],credit=c[10];
+      if(credit==='売上'){
+        // 収入（売上）
+        let amount=parseInt(c[14])||parseInt(c[8])||0;
+        if(!amount)continue;
+        let note=(c[26]||c[25]||'').trim()||null;
+        entries.push({date,type:'inc',category:'売上',amount,note,user_id:userId});
+      }else if(!SKIP.includes(debit)&&(credit==='普通預金'||credit==='当座預金'||credit==='現金')){
+        // 経費
+        let amount=parseInt(c[8])||0;
+        if(!amount)continue;
+        let category=YAYOI_CAT_MAP[debit]||'雑費';
+        let note=(c[25]||'').trim()||null;
+        entries.push({date,type:'exp',category,amount,note,user_id:userId});
+      }
+    }
+    if(!entries.length){showToast('弥生CSVから取り込めるデータが見つかりませんでした','warn');event.target.value='';return;}
+    showToast('弥生形式を検出しました（'+entries.length+'件）','info',3000);
+  }else{
+    // 家計簿アプリ形式（ヘッダーあり）
+    let start=lines[0].includes('日付')?1:0;
+    for(let i=start;i<lines.length;i++){
+      let cols=parseCSVLine(lines[i]);
+      let date=cols[0],type=(cols[1]==='収入')?'inc':'exp',category=cols[2],amount=parseInt(cols[3]),note=cols[4]||null;
+      if(!date||!category||!amount||isNaN(amount))continue;
+      entries.push({date,type,category,amount,note:note||null,user_id:userId});
+    }
+    if(!entries.length){showToast('インポートできるデータがありませんでした','warn');event.target.value='';return;}
   }
-  if(!entries.length){showToast('インポートできるデータがありませんでした','warn');return;}
   ss('spin','インポート中...');
+  let imported=0;
   for(let entry of entries){
     try{
       let r=await fetchWithRefresh(SU+'/rest/v1/entries',{
@@ -2279,7 +2331,7 @@ async function importCSV(event){
     }catch(e){}
   }
   if(imported>0){ss('ok',imported+'件インポートしました');await load();}
-  else{ss('err','インポート失敗');showToast('インポートに失敗しました。ファイル形式を確認してください','err',5000);}
+  else{ss('err','インポート失敗');showToast('インポートに失敗しました。時間をおいて再試行してください','err',5000);}
   event.target.value='';
 }
 
