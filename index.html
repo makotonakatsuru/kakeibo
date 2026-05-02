@@ -358,7 +358,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <div id="si" style="font-size:17px;font-weight:700;color:var(--g)">¥0</div>
       </div>
       <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-        <div style="font-size:11px;color:#888;margin-bottom:2px">支出</div>
+        <div style="font-size:11px;color:#888;margin-bottom:2px">経費</div>
         <div id="se" style="font-size:17px;font-weight:700;color:var(--r)">¥0</div>
       </div>
       <div style="text-align:center;padding:8px 4px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
@@ -384,9 +384,20 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <div class="settings-item" onclick="openStoreModal();closeSettings()">
           <span class="settings-icon">🏪</span>よく使うお店
         </div>
-        <div class="settings-item" onclick="openFixedModal();closeSettings()">
-          <span class="settings-icon">🔄</span>固定費・収入の設定
+        <div class="settings-item" onclick="openClientModal();closeSettings()">
+          <span class="settings-icon">👥</span>売上先管理
         </div>
+        <div class="settings-item" onclick="openFixedModal();closeSettings()">
+          <span class="settings-icon">🔄</span>固定費の設定
+        </div>
+        <label class="settings-item" for="monthly-chart-toggle" style="cursor:pointer">
+          <span class="settings-icon">📈</span>
+          <span style="flex:1">月別推移グラフ</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="monthly-chart-toggle" onchange="toggleMonthlyChart()">
+            <div class="toggle-track"></div>
+          </div>
+        </label>
         <label class="settings-item" for="weekly-toggle" style="cursor:pointer">
           <span class="settings-icon">📅</span>
           <span style="flex:1">週次サマリー</span>
@@ -441,7 +452,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <div class="formrow">
           <div class="tt">
             <button id="ib" class="ai" onclick="setType('inc')">収入</button>
-            <button id="eb" onclick="setType('exp')">支出</button>
+            <button id="eb" onclick="setType('exp')">経費</button>
           </div>
           <select id="cs"></select>
         </div>
@@ -453,6 +464,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
           <input type="text" id="note" list="note-history" placeholder="備考（お店名など）" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
           <button type="button" onclick="openPatternPicker()" style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">⚡️</button>
           <button type="button" onclick="openStorePicker('note')" style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">🏪</button>
+          <button type="button" onclick="openClientPicker('note')" style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">👥</button>
           <datalist id="note-history"></datalist>
         </div>
       </div>
@@ -480,6 +492,17 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         </div>
       </div>
     </div>
+    <!-- 月別推移グラフ -->
+    <div class="chart-section" id="monthly-chart-section" style="display:none">
+      <div class="chart-section-title">月別推移グラフ（{{year}}年）</div>
+      <div class="chart-box">
+        <canvas id="trend-chart" height="160" style="width:100%;display:block"></canvas>
+      </div>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:12px">
+        <span><span style="display:inline-block;width:12px;height:8px;background:#1D9E75;border-radius:2px;margin-right:4px"></span>収入</span>
+        <span><span style="display:inline-block;width:12px;height:8px;background:#E24B4A;border-radius:2px;margin-right:4px"></span>経費</span>
+      </div>
+    </div>
     <!-- 予算セクション -->
     <div class="chart-section" id="budget-section">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -494,7 +517,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <div class="chart-section-title" style="margin:0">週次サマリー</div>
       </div>
       <div class="weekly-header">
-        <span>期間</span><span style="text-align:right">収入</span><span style="text-align:right">支出</span><span style="text-align:right">残高</span>
+        <span>期間</span><span style="text-align:right">収入</span><span style="text-align:right">経費</span><span style="text-align:right">残高</span>
       </div>
       <div id="weekly-summary"></div>
     </div>
@@ -504,7 +527,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <div class="annual-year" id="annual-year" onclick="toggleYearPicker()" style="cursor:pointer;padding:3px 8px;border-radius:8px;border:1px solid var(--border)"></div>
       </div>
       <table class="annual-table">
-        <thead><tr><th>月</th><th>収入</th><th>支出</th><th>支出率</th><th>残高</th></tr></thead>
+        <thead><tr><th>月</th><th>収入</th><th>経費</th><th>経費率</th><th>残高</th></tr></thead>
         <tbody id="annual-body"></tbody>
       </table>
     </div>
@@ -602,9 +625,9 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費・収入の自動登録</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔄 固定費の自動登録</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
-            設定→🔄固定費・収入の設定から毎月の給与や家賃などを登録すると自動で記録されます。<br>
+            設定→🔄固定費の設定から毎月の家賃・光熱費などの経費を登録すると自動で記録されます。<br>
             設定内容はクラウドに保存されるため端末が変わっても引き継がれます。
           </div>
         </div>
@@ -737,7 +760,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 <div class="modal-overlay" id="fixed-modal" onclick="closeFixedModal(event)">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">固定費・収入の設定</div>
+      <div class="modal-title">固定費の設定（経費のみ）</div>
       <button class="modal-close" onclick="document.getElementById('fixed-modal').classList.remove('show')">✕</button>
     </div>
     <div class="modal-body" style="padding:16px">
@@ -745,8 +768,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
       <div style="border-top:1px solid var(--border);padding-top:16px">
         <div style="font-size:13px;color:#888;margin-bottom:8px">新しく追加</div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button id="fixed-inc-btn" onclick="setFixedType('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
-          <button id="fixed-exp-btn" onclick="setFixedType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+          <button id="fixed-exp-btn" onclick="setFixedType('exp')" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--r);color:#fff">経費</button>
         </div>
         <select id="fixed-category" style="width:100%;font-size:15px;padding:9px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px"></select>
         <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -784,7 +806,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
       <div style="margin-bottom:12px">
         <div style="display:flex;gap:8px">
           <button id="ib2" onclick="setType2('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px;background:var(--g);color:#fff">収入</button>
-          <button id="eb2" onclick="setType2('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+          <button id="eb2" onclick="setType2('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">経費</button>
         </div>
       </div>
       <div style="margin-bottom:12px">
@@ -795,8 +817,9 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
       </div>
       <div style="margin-bottom:16px">
         <div style="display:flex;gap:8px">
-          <input type="text" id="note2" list="note-history" placeholder="備考（お店名など）" style="flex:1;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-family:inherit">
+          <input type="text" id="note2" list="note-history" placeholder="備考（お店名・売上先など）" style="flex:1;font-size:16px;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-family:inherit">
           <button type="button" onclick="openStorePicker('note2')" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">🏪</button>
+          <button type="button" onclick="openClientPicker('note2')" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">👥</button>
         </div>
       </div>
       <button onclick="addE2()" id="ab2" style="width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">追加</button>
@@ -815,7 +838,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <div style="font-size:12px;color:#888;margin-bottom:4px">種別</div>
         <div style="display:flex;gap:8px">
           <button id="edit-inc-btn" onclick="setEditType('inc')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">収入</button>
-          <button id="edit-exp-btn" onclick="setEditType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">支出</button>
+          <button id="edit-exp-btn" onclick="setEditType('exp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:14px">経費</button>
         </div>
       </div>
       <div style="margin-bottom:12px">
@@ -855,6 +878,35 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         </div>
       </div>
     </div>
+  </div>
+</div>
+<!-- 売上先管理モーダル -->
+<div class="modal-overlay" id="client-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👥 売上先管理</div>
+      <button class="modal-close" onclick="document.getElementById('client-modal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:12px 16px">
+      <div id="client-list" style="margin-bottom:12px"></div>
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-size:12px;color:#888;margin-bottom:6px">新しい売上先を追加</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="client-input" placeholder="例：株式会社○○、田中様" style="flex:1;font-size:15px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-family:inherit">
+          <button onclick="addClient()" style="padding:9px 16px;background:var(--g);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">追加</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 売上先ピッカー -->
+<div class="store-picker-overlay" id="client-picker-overlay" onclick="closeClientPicker()">
+  <div class="store-picker" onclick="event.stopPropagation()">
+    <div class="store-picker-hd">
+      <span class="store-picker-title">👥 売上先を選択</span>
+      <button onclick="closeClientPicker()" style="background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;padding:0">✕</button>
+    </div>
+    <div id="client-picker-list"></div>
   </div>
 </div>
 <!-- お店ピッカー -->
@@ -897,18 +949,18 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.6.1';
+const APP_VERSION='1.7.0';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
-const INC=['給与','副業','ボーナス','配当','その他収入'];
-const EXP=['食費','外食','交通費','住居費','水道光熱費','通信費','医療費','娯楽','衣類','日用品','教育','保険','税金','貯蓄','投資','その他支出'];
-const INC_COLORS=['#1D9E75','#5DCAA5','#9FE1CB','#0F6E56','#085041','#639922','#97C459'];
+const INC=['売上','報酬','副業収入','ボーナス','その他収入'];
+const EXP=['仕入','外注費','交通費','通信費','広告費','接待費','家賃・地代','水道光熱費','消耗品費','保険料','税金・公課','雑費'];
+const INC_COLORS=['#1D9E75','#5DCAA5','#9FE1CB','#0F6E56','#085041'];
 const EXP_COLOR_MAP={
-  '食費':'#E24B4A','外食':'#FF7F50','交通費':'#EF9F27','住居費':'#D4537E',
-  '水道光熱費':'#7F77DD','通信費':'#378ADD','医療費':'#6BCB77','娯楽':'#F9C74F',
-  '衣類':'#C77DFF','日用品':'#4CC9F0','教育':'#185FA5','保険':'#534AB7',
-  '税金':'#A32D2D','貯蓄':'#1D9E75','投資':'#2E7D32','その他支出':'#888888'
+  '仕入':'#E24B4A','外注費':'#FF7F50','交通費':'#EF9F27','通信費':'#378ADD',
+  '広告費':'#7F77DD','接待費':'#D4537E','家賃・地代':'#F9C74F',
+  '水道光熱費':'#4CC9F0','消耗品費':'#6BCB77','保険料':'#534AB7',
+  '税金・公課':'#A32D2D','雑費':'#888888'
 };
 const EXP_COLORS=EXP.map(c=>EXP_COLOR_MAP[c]||'#888888');
 
@@ -1161,7 +1213,7 @@ async function showApp(){
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
   initDarkMode();
-  await Promise.all([loadFixedItems(),loadStores(),loadUserPrefs(),loadBudgetPref(),loadPatterns()]);
+  await Promise.all([loadFixedItems(),loadStores(),loadClients(),loadUserPrefs(),loadBudgetPref(),loadPatterns(),loadMonthlyChartPref()]);
   load();
   checkVersion();
 }
@@ -1374,7 +1426,7 @@ function renderPatternList(){
   if(!pats.length){list.innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:12px 0">登録されたパターンはありません</div>';return;}
   list.innerHTML=pats.map((p,i)=>`
     <div class="pat-item">
-      <span class="pat-tag ${p.type==='inc'?'inc':'exp'}">${p.type==='inc'?'収入':'支出'}</span>
+      <span class="pat-tag ${p.type==='inc'?'inc':'exp'}">${p.type==='inc'?'収入':'経費'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.category}</div>
         ${p.note?`<div style="font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.note}</div>`:''}
@@ -1417,7 +1469,7 @@ function renderPatternPickerList(){
   if(!pats.length){list.innerHTML='<div style="font-size:13px;color:#aaa;text-align:center;padding:12px 0">パターンがありません</div>';return;}
   list.innerHTML=pats.map((p,i)=>`
     <div class="pat-item" onclick="selectPattern(${i})">
-      <span class="pat-tag ${p.type==='inc'?'inc':'exp'}">${p.type==='inc'?'収入':'支出'}</span>
+      <span class="pat-tag ${p.type==='inc'?'inc':'exp'}">${p.type==='inc'?'収入':'経費'}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.category}</div>
         ${p.note?`<div style="font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.note}</div>`:''}
@@ -1617,9 +1669,100 @@ function _renderBarChart_unused(){
   });
 }
 
-// ===== 月別推移グラフ（削除済み） =====
-let trendChart=null;
-function renderTrendChart(){return;}
+// ===== 月別推移グラフ =====
+let monthlyChartEnabled=false;
+async function loadMonthlyChartPref(){
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/user_settings?user_id=eq.'+userId+'&select=monthly_chart_enabled',{headers:H()});
+    if(r.ok){
+      let d=await r.json();
+      monthlyChartEnabled=d.length?(d[0].monthly_chart_enabled??false):false;
+    }
+  }catch(e){monthlyChartEnabled=false;}
+  applyMonthlyChartVisibility();
+}
+async function persistMonthlyChartPref(){
+  try{
+    await fetchWithRefresh(SU+'/rest/v1/user_settings',{
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({user_id:userId,monthly_chart_enabled:monthlyChartEnabled,updated_at:new Date().toISOString()})
+    });
+  }catch(e){}
+}
+function toggleMonthlyChart(){
+  monthlyChartEnabled=document.getElementById('monthly-chart-toggle').checked;
+  applyMonthlyChartVisibility();
+  persistMonthlyChartPref();
+  if(monthlyChartEnabled)renderTrendChart();
+}
+function applyMonthlyChartVisibility(){
+  let sec=document.getElementById('monthly-chart-section');
+  if(sec)sec.style.display=monthlyChartEnabled?'':'none';
+  let tog=document.getElementById('monthly-chart-toggle');
+  if(tog)tog.checked=monthlyChartEnabled;
+}
+function renderTrendChart(){
+  if(!monthlyChartEnabled)return;
+  let canvas=document.getElementById('trend-chart');
+  if(!canvas)return;
+  // タイトルの年を更新
+  let sec=document.getElementById('monthly-chart-section');
+  if(sec){let title=sec.querySelector('.chart-section-title');if(title)title.textContent='月別推移グラフ（'+vy+'年）';}
+  let ctx=canvas.getContext('2d');
+  let months=Array.from({length:12},(_,i)=>i+1);
+  let incData=months.map(m=>{
+    let prefix=vy+'-'+String(m).padStart(2,'0')+'-';
+    let seen=new Set();
+    return annualData.filter(e=>{if(!e.date.startsWith(prefix)||e.type!=='inc')return false;if(seen.has(e.id))return false;seen.add(e.id);return true;}).reduce((s,e)=>s+e.amount,0);
+  });
+  let expData=months.map(m=>{
+    let prefix=vy+'-'+String(m).padStart(2,'0')+'-';
+    let seen=new Set();
+    return annualData.filter(e=>{if(!e.date.startsWith(prefix)||e.type!=='exp')return false;if(seen.has(e.id))return false;seen.add(e.id);return true;}).reduce((s,e)=>s+e.amount,0);
+  });
+  let maxVal=Math.max(...incData,...expData,1);
+  let W=canvas.parentElement?canvas.parentElement.clientWidth-24:320;
+  let dpr=window.devicePixelRatio||1;
+  let h=160;
+  canvas.width=W*dpr;canvas.height=h*dpr;
+  canvas.style.width=W+'px';canvas.style.height=h+'px';
+  ctx.scale(dpr,dpr);
+  let pad={t:16,r:12,b:28,l:52};
+  let cw=W-pad.l-pad.r,ch=h-pad.t-pad.b;
+  ctx.clearRect(0,0,W,h);
+  ctx.strokeStyle='#e8e8e8';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    let y=pad.t+ch*(1-i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#aaa';ctx.font='10px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText(i===0?'0':Math.round(maxVal*i/4/1000)+'k',pad.l-4,y+4);
+  }
+  let currentM=today.getFullYear()===vy?today.getMonth():-1;
+  [[incData,'#1D9E75'],[expData,'#E24B4A']].forEach(([vals,color])=>{
+    ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.beginPath();
+    let started=false;
+    vals.forEach((v,i)=>{
+      if(vy===today.getFullYear()&&i>currentM)return;
+      let x=pad.l+cw*i/11;
+      let y=pad.t+ch*(1-v/maxVal);
+      if(!started){ctx.moveTo(x,y);started=true;}else{ctx.lineTo(x,y);}
+    });
+    ctx.stroke();
+    vals.forEach((v,i)=>{
+      if(vy===today.getFullYear()&&i>currentM)return;
+      if(v===0)return;
+      let x=pad.l+cw*i/11,y=pad.t+ch*(1-v/maxVal);
+      ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    });
+  });
+  ctx.fillStyle='#888';ctx.font='10px -apple-system,sans-serif';ctx.textAlign='center';
+  months.forEach((m,i)=>{
+    if(vy===today.getFullYear()&&i>currentM)return;
+    let x=pad.l+cw*i/11;
+    ctx.fillText(m+'月',x,h-pad.b+14);
+  });
+}
 function _renderTrendChart_unused(){
   let canvas=document.getElementById('trend-chart');
   if(!canvas)return;
@@ -1764,7 +1907,7 @@ function openFixedModal(){
   // 日付セレクト初期化
   let dayEl=document.getElementById('fixed-day');
   dayEl.innerHTML=Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'日</option>').join('')+'<option value="99">末日</option>';
-  setFixedType('inc');
+  setFixedType('exp');
   // 年月セレクトを初期化
   let now=new Date();
   let cy=now.getFullYear(),cm=now.getMonth()+1;
@@ -1787,12 +1930,8 @@ function closeFixedModal(e){
     document.getElementById('fixed-modal').classList.remove('show');
 }
 function setFixedType(t){
-  fixedType=t;
-  document.getElementById('fixed-inc-btn').style.background=t==='inc'?'var(--g)':'';
-  document.getElementById('fixed-inc-btn').style.color=t==='inc'?'#fff':'';
-  document.getElementById('fixed-exp-btn').style.background=t==='exp'?'var(--r)':'';
-  document.getElementById('fixed-exp-btn').style.color=t==='exp'?'#fff':'';
-  document.getElementById('fixed-category').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
+  fixedType='exp';
+  document.getElementById('fixed-category').innerHTML=EXP.map(c=>'<option>'+c+'</option>').join('');
 }
 let fixedItemsCache=null;
 async function loadFixedItems(){
@@ -1835,7 +1974,7 @@ function saveFixedItems(items){
 function renderFixedList(){
   let items=getFixedItems();
   let el=document.getElementById('fixed-list');
-  if(!items.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:8px">固定費・収入が登録されていません</div>';return;}
+  if(!items.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:8px">固定費が登録されていません</div>';return;}
   el.innerHTML=items.map((item,i)=>`
     <div style="padding:8px 0;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between">
@@ -2038,7 +2177,7 @@ async function applyOneFixedItem(item){
       if(r.ok)added++;
     }catch(e){}
   }
-  if(added>0){ss('ok','固定費・収入を'+added+'件追加しました');}
+  if(added>0){ss('ok','固定費を'+added+'件追加しました');}
 }
 
 async function applyFixedItems(){
@@ -2086,7 +2225,7 @@ async function applyFixedItems(){
       if(r.ok)added3++;
     }catch(e){}
   }
-  if(added3>0){ss('ok','固定費・収入を'+added3+'件自動追加しました');}
+  if(added3>0){ss('ok','固定費を'+added3+'件自動追加しました');}
 }
 
 function exportCSV(){
@@ -2098,7 +2237,7 @@ function exportCSV(){
   let unique=allData.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
   unique.sort((a,b)=>a.date<b.date?-1:1);
   unique.forEach(e=>{
-    rows.push([e.date, e.type==='inc'?'収入':'支出', e.category, e.amount, e.note||'']);
+    rows.push([e.date, e.type==='inc'?'収入':'経費', e.category, e.amount, e.note||'']);
   });
   let csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   let blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),...[new TextEncoder().encode(csv)]],{type:'text/csv;charset=utf-8'});
@@ -2123,7 +2262,7 @@ async function importCSV(event){
   for(let i=1;i<lines.length;i++){
     let cols=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||[];
     cols=cols.map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"').trim());
-    let date=cols[0],type=cols[1]==='収入'?'inc':'exp',category=cols[2],amount=parseInt(cols[3]),note=cols[4]||null;
+    let date=cols[0],type=(cols[1]==='収入')?'inc':'exp',category=cols[2],amount=parseInt(cols[3]),note=cols[4]||null;
     if(!date||!category||!amount||isNaN(amount))continue;
     entries.push({date,type,category,amount,note:note||null,user_id:userId});
   }
@@ -2249,7 +2388,7 @@ function showMonthDetail(m, type){
   let total=filtered.reduce((s,e)=>s+e.amount,0);
   let color=type==='inc'?'var(--g)':'var(--r)';
   let sign=type==='inc'?'+':'-';
-  let title=(m===0?vy+'年':m+'月')+'の'+(type==='inc'?'収入':'支出');
+  let title=(m===0?vy+'年':m+'月')+'の'+(type==='inc'?'収入':'経費');
   document.getElementById('modal-title').textContent=title;
   document.getElementById('modal-total').textContent=sign+fy(total);
   document.getElementById('modal-total').style.color=color;
@@ -2784,6 +2923,95 @@ function closeStorePicker(){
   storePickerTarget=null;
 }
 
+// ===== 売上先管理 =====
+let clientsCache=null;
+async function loadClients(){
+  try{
+    let r=await fetchWithRefresh(SU+'/rest/v1/user_settings?user_id=eq.'+userId+'&select=client_items',{headers:H()});
+    if(r.ok){
+      let d=await r.json();
+      if(d.length){
+        clientsCache=d[0].client_items||[];
+      }else{
+        clientsCache=JSON.parse(localStorage.getItem('clients_'+userId)||'[]');
+        await persistClients(clientsCache);
+      }
+    }else{
+      clientsCache=JSON.parse(localStorage.getItem('clients_'+userId)||'[]');
+    }
+  }catch(e){
+    clientsCache=JSON.parse(localStorage.getItem('clients_'+userId)||'[]');
+  }
+}
+async function persistClients(clients){
+  try{
+    await fetchWithRefresh(SU+'/rest/v1/user_settings',{
+      method:'POST',
+      headers:{...H(),'Prefer':'resolution=merge-duplicates'},
+      body:JSON.stringify({user_id:userId,client_items:clients,updated_at:new Date().toISOString()})
+    });
+  }catch(e){}
+}
+function getClients(){return clientsCache||[];}
+function saveClients(clients){clientsCache=clients;persistClients(clients);}
+function renderClientList(){
+  let clients=getClients();
+  let el=document.getElementById('client-list');
+  if(!el)return;
+  if(!clients.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:10px">登録されている売上先はありません</div>';return;}
+  el.innerHTML=clients.map((c,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:15px">👥 ${c}</span>
+      <button onclick="deleteClient(${i})" style="background:none;border:none;color:#bbb;font-size:18px;cursor:pointer;padding:0 4px">✕</button>
+    </div>`).join('');
+}
+function openClientModal(){
+  renderClientList();
+  document.getElementById('client-input').value='';
+  document.getElementById('client-modal').classList.add('show');
+}
+function addClient(){
+  let name=document.getElementById('client-input').value.trim();
+  if(!name){showToast('売上先名を入力してください','warn');return;}
+  let clients=getClients();
+  if(clients.includes(name)){showToast('すでに登録済みです','warn');return;}
+  clients.push(name);
+  saveClients(clients);
+  document.getElementById('client-input').value='';
+  renderClientList();
+  ss('ok','売上先を登録しました');
+}
+function deleteClient(i){
+  let clients=getClients();
+  clients.splice(i,1);
+  saveClients(clients);
+  renderClientList();
+}
+let clientPickerTarget=null;
+function openClientPicker(targetId){
+  clientPickerTarget=targetId;
+  let clients=getClients();
+  let list=document.getElementById('client-picker-list');
+  if(!clients.length){
+    list.innerHTML='<div class="store-picker-empty">登録されている売上先がありません<br><span style="font-size:12px;color:#bbb">設定→👥売上先管理から追加できます</span></div>';
+  }else{
+    list.innerHTML=clients.map(c=>`
+      <div class="store-picker-item" onclick="selectClient('${c.replace(/'/g,"\\'")}')">👥 ${c}</div>`).join('');
+  }
+  document.getElementById('client-picker-overlay').classList.add('show');
+}
+function selectClient(name){
+  if(clientPickerTarget){
+    let el=document.getElementById(clientPickerTarget);
+    if(el)el.value=name;
+  }
+  closeClientPicker();
+}
+function closeClientPicker(){
+  document.getElementById('client-picker-overlay').classList.remove('show');
+  clientPickerTarget=null;
+}
+
 // ===== 週次サマリー =====
 function getWeeks(y,m){
   let firstDay=new Date(y,m,1);
@@ -2975,7 +3203,7 @@ if('serviceWorker' in navigator){
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <div class="tt">
           <button id="pat-ib" class="ai" onclick="setPatternType('inc')">収入</button>
-          <button id="pat-eb" onclick="setPatternType('exp')">支出</button>
+          <button id="pat-eb" onclick="setPatternType('exp')">経費</button>
         </div>
         <select id="pat-cat" style="flex:1;font-size:14px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:#fff"></select>
       </div>
