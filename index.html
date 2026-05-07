@@ -2174,20 +2174,10 @@ async function changeName(){
   let newName=prompt('新しい名前を入力してください', userName);
   if(!newName||!newName.trim())return;
   newName=newName.trim();
-  try{
-    let r=await fetch(SU+'/auth/v1/user',{
-      method:'PUT',
-      headers:{...H()},
-      body:JSON.stringify({data:{name:newName}})
-    });
-    if(!r.ok)throw new Error();
-    userName=newName;
-    localStorage.setItem('kb_name_'+userId,userName);
-    document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
-    showToast('名前を変更しました','ok');
-  }catch(e){
-    showToast('名前の変更に失敗しました','err',5000);
-  }
+  userName=newName;
+  localStorage.setItem('kb_name_'+userId,userName);
+  document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
+  showToast('名前を変更しました','ok');
 }
 
 function showCatDetail(category, type){
