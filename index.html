@@ -997,6 +997,16 @@ window.addEventListener('online',()=>{
   load();
 });
 
+let _lastHidden=0;
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='hidden'){_lastHidden=Date.now();return;}
+  if(!userId)return;
+  let away=Date.now()-_lastHidden;
+  if(away<60000)return;
+  await refreshAccessToken();
+  load();
+});
+
 function switchTab(tab){
   document.getElementById('tab-login').className='auth-tab'+(tab==='login'?' active':'');
   document.getElementById('tab-signup').className='auth-tab'+(tab==='signup'?' active':'');
