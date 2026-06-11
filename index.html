@@ -449,6 +449,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
           <input type="number" id="ai" placeholder="金額を入力（例: 5000）" min="1">
           <button class="ab" id="ab" onclick="addE()">追加</button>
         </div>
+        <div id="note-date-row" style="font-size:12px;color:#888;margin-bottom:-2px;display:none">📅 <span id="note-date-label" style="color:var(--g);font-weight:600"></span></div>
         <div class="formrow">
           <input type="text" id="note" list="note-history" placeholder="備考（お店名など）" style="font-size:18px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#222;width:100%;font-family:inherit">
           <button type="button" onclick="openPatternPicker()" style="padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:18px;cursor:pointer;flex-shrink:0">⚡️</button>
@@ -897,7 +898,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.6.2';
+const APP_VERSION='1.6.5';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -919,16 +920,22 @@ let data=[],annualData=[];
 function updateDateHint(){
   if(!sel){document.getElementById('date-hint').innerHTML='↓ カレンダーで日付を選んでください';return;}
   let p=sel.split('-');
+  let now=new Date();
+  let isToday=parseInt(p[0])===now.getFullYear()&&parseInt(p[1])-1===now.getMonth()&&parseInt(p[2])===now.getDate();
+  let dateStr=parseInt(p[1])+'月'+parseInt(p[2])+'日'+(isToday?' (今日)':'');
   document.getElementById('date-hint').innerHTML='選択中: <span>'+p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日</span>';
   // sel-date-labelも更新
   let label=document.getElementById('sel-date-label');
   if(label&&label.style.display==='none'){
-    let now=new Date();
-    let isToday=parseInt(p[0])===now.getFullYear()&&parseInt(p[1])-1===now.getMonth()&&parseInt(p[2])===now.getDate();
-    label.textContent=parseInt(p[1])+'月'+parseInt(p[2])+'日'+(isToday?' (今日)':'');
+    label.textContent=dateStr;
     label.style.color='#1D9E75';
     label.style.display='inline';
   }
+  // 備考欄上の日付ラベルも更新
+  let ndr=document.getElementById('note-date-row');
+  let ndl=document.getElementById('note-date-label');
+  if(ndl)ndl.textContent=dateStr;
+  if(ndr)ndr.style.display='block';
 }
 let accessToken=null,refreshToken=null,userId=null,userName='';
 
@@ -1086,6 +1093,7 @@ async function deleteAccount(){
 }
 
 async function doLogout(){
+  if(_tokenRefreshTimer){clearInterval(_tokenRefreshTimer);_tokenRefreshTimer=null;}
   try{await fetch(SU+'/auth/v1/logout',{method:'POST',headers:H()})}catch(e){}
   accessToken=null;userId=null;userName='';
   localStorage.removeItem('kb_token');localStorage.removeItem('kb_uid');localStorage.removeItem('kb_refresh');
@@ -1165,11 +1173,14 @@ function applySeasonBg(){
   };
   img.src=url;
 }
+let _tokenRefreshTimer=null;
 async function showApp(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
+  if(_tokenRefreshTimer)clearInterval(_tokenRefreshTimer);
+  _tokenRefreshTimer=setInterval(refreshAccessToken,25*60*1000);
   initDarkMode();
   await Promise.all([loadFixedItems(),loadStores(),loadUserPrefs(),loadBudgetPref(),loadPatterns()]);
   load();
@@ -1503,10 +1514,12 @@ async function addE(){
     if(!r.ok)throw new Error((await r.json()).message||r.status);
     let ne=await r.json();
     let noteVal=document.getElementById('note').value.trim();
-    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
+    let storeAdded=false;
+    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}
+      let stores=getStores();if(!stores.includes(noteVal)){stores.push(noteVal);saveStores(stores);storeAdded=true;}}
     document.getElementById('ai').value='';
     document.getElementById('note').value='';
-    ss('ok','保存しました');
+    ss('ok',storeAdded?'保存しました（🏪「'+noteVal+'」をリストに追加）':'保存しました');
     await load();
   }catch(e){ss('err','保存失敗');showToast(e.offline?'オフライン中です。ネット接続を確認してください。':'保存に失敗しました。時間をおいて再試行してください','err',5000);render();}
   btn.disabled=false;btn.textContent='追加';
@@ -2411,10 +2424,12 @@ async function addE2(){
     });
     if(!r.ok)throw new Error((await r.json()).message||r.status);
     let noteVal=document.getElementById('note2').value.trim();
-    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}}
+    let storeAdded=false;
+    if(noteVal){let hist=JSON.parse(localStorage.getItem('noteHistory')||'[]');if(!hist.includes(noteVal)){hist.unshift(noteVal);if(hist.length>30)hist.pop();localStorage.setItem('noteHistory',JSON.stringify(hist));updateNoteHistory();}
+      let stores=getStores();if(!stores.includes(noteVal)){stores.push(noteVal);saveStores(stores);storeAdded=true;}}
     document.getElementById('ai2').value='';
     document.getElementById('note2').value='';
-    ss('ok','保存しました');
+    ss('ok',storeAdded?'保存しました（🏪「'+noteVal+'」をリストに追加）':'保存しました');
     document.getElementById('add-modal').classList.remove('show');
     await load();
   }catch(e){ss('err','保存失敗');showToast(e.offline?'オフライン中です。ネット接続を確認してください。':'保存に失敗しました。時間をおいて再試行してください','err',5000);await loadAnnual();render();}
@@ -2726,7 +2741,11 @@ function getStores(){
 }
 function saveStores(stores){
   storesCache=stores;
+  try{localStorage.setItem('stores_'+userId,JSON.stringify(stores))}catch(e){}
   persistStores(stores);
+}
+function escST(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 function renderStoreList(){
   let stores=getStores();
@@ -2735,7 +2754,7 @@ function renderStoreList(){
   if(!stores.length){el.innerHTML='<div style="color:#aaa;text-align:center;font-size:13px;padding:10px">登録されているお店はありません</div>';return;}
   el.innerHTML=stores.map((s,i)=>`
     <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:15px">🏪 ${s}</span>
+      <span style="font-size:15px">🏪 ${escST(s)}</span>
       <button onclick="deleteStore(${i})" style="background:none;border:none;color:#bbb;font-size:18px;cursor:pointer;padding:0 4px">✕</button>
     </div>`).join('');
 }
@@ -2769,10 +2788,13 @@ function openStorePicker(targetId){
   if(!stores.length){
     list.innerHTML='<div class="store-picker-empty">登録されているお店がありません<br><span style="font-size:12px;color:#bbb">設定→🏪よく使うお店から追加できます</span></div>';
   }else{
-    list.innerHTML=stores.map(s=>`
-      <div class="store-picker-item" onclick="selectStore('${s.replace(/'/g,"\\'")}')">🏪 ${s}</div>`).join('');
+    list.innerHTML=stores.map((s,i)=>`
+      <div class="store-picker-item" onclick="selectStoreIdx(${i})">🏪 ${escST(s)}</div>`).join('');
   }
   document.getElementById('store-picker-overlay').classList.add('show');
+}
+function selectStoreIdx(i){
+  selectStore(getStores()[i]||'');
 }
 function selectStore(name){
   if(storePickerTarget){
