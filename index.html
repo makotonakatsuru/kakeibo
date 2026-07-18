@@ -213,6 +213,7 @@ html[data-theme="dark"]{
 html[data-theme="dark"] body{background:#111;color:#e2e2e2}
 html[data-theme="dark"] .wrap{background:#111}
 html[data-theme="dark"] #auth-screen{background:#111}
+html[data-theme="dark"] #lock-screen{background:#111}
 html[data-theme="dark"] .auth-field input,
 html[data-theme="dark"] select,
 html[data-theme="dark"] input[type=number],
@@ -327,6 +328,16 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
   </div>
 </div>
 
+<!-- ロック画面（Face ID / Touch ID） -->
+<div id="lock-screen" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;background:#fff">
+  <div style="font-size:48px;margin-bottom:12px">🔒</div>
+  <div style="font-size:20px;font-weight:700;color:#1D9E75;margin-bottom:6px">ロック中</div>
+  <div style="font-size:13px;color:#888;margin-bottom:32px">Face ID / Touch IDで解除してください</div>
+  <button class="auth-btn" style="max-width:280px" onclick="unlockWithBiometric()">🔓 Face ID / Touch IDで解除</button>
+  <div id="lock-err" style="font-size:13px;color:var(--r);text-align:center;margin-top:14px;min-height:20px"></div>
+  <div style="margin-top:24px;font-size:12px;color:#aaa;cursor:pointer;text-decoration:underline" onclick="doLogout()">ログアウトしてやり直す</div>
+</div>
+
 <!-- アプリ画面 -->
 <div id="app-screen">
   <div class="wrap">
@@ -392,6 +403,14 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
           <span style="flex:1">週次サマリー</span>
           <div class="toggle-switch">
             <input type="checkbox" id="weekly-toggle" onchange="toggleWeekly()">
+            <div class="toggle-track"></div>
+          </div>
+        </label>
+        <label class="settings-item" for="biolock-toggle" style="cursor:pointer">
+          <span class="settings-icon">🔒</span>
+          <span style="flex:1">Face ID / Touch IDでロック</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="biolock-toggle" onchange="toggleBioLock()">
             <div class="toggle-track"></div>
           </div>
         </label>
@@ -508,6 +527,33 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
         <thead><tr><th>月</th><th>収入</th><th>支出</th><th>支出率</th><th>残高</th></tr></thead>
         <tbody id="annual-body"></tbody>
       </table>
+    </div>
+    <!-- 年間カテゴリ別累計 -->
+    <div class="chart-section" id="annual-cat-section">
+      <div class="chart-section-title">年間カテゴリ別累計（<span id="annual-cat-year"></span>）</div>
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-box-title inc"><span>収入</span><span class="box-total" id="cat-total-annual-inc"></span></div>
+          <div class="chart-canvas-wrap"><canvas id="pie-annual-inc" width="160" height="160"></canvas></div>
+          <div class="legend" id="legend-annual-inc"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-box-title exp"><span>支出</span><span class="box-total" id="cat-total-annual-exp"></span></div>
+          <div class="chart-canvas-wrap"><canvas id="pie-annual-exp" width="160" height="160"></canvas></div>
+          <div class="legend" id="legend-annual-exp"></div>
+        </div>
+      </div>
+    </div>
+    <!-- 年間お店別累計 -->
+    <div class="chart-section" id="annual-store-section">
+      <div class="chart-section-title">年間お店別累計（<span id="annual-store-year"></span>）</div>
+      <div class="charts-row">
+        <div class="chart-box">
+          <div class="chart-box-title exp"><span>支出（お店・備考別）</span><span class="box-total" id="store-total-annual"></span></div>
+          <div class="chart-canvas-wrap"><canvas id="pie-annual-store" width="160" height="160"></canvas></div>
+          <div class="legend" id="legend-annual-store"></div>
+        </div>
+      </div>
     </div>
     <div class="foot">あなただけの家計簿 ･ <a href="./privacy.html" style="color:inherit;text-decoration:underline">プライバシーポリシー</a></div>
 </div>
@@ -650,6 +696,13 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
           <div style="font-size:14px;font-weight:700;margin-bottom:6px">📝 カレンダーメモ</div>
           <div style="font-size:13px;color:#555;line-height:1.8">
             カレンダーの日付を<strong>長押し</strong>するとメモを書けます。病院・予定・イベントなど何でも記録できます。
+          </div>
+        </div>
+        <div style="background:#f0faf5;border-radius:12px;padding:12px">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔒 Face ID / Touch IDロック</div>
+          <div style="font-size:13px;color:#555;line-height:1.8">
+            設定→🔒Face ID / Touch IDでロックをONにすると、次回以降アプリを開くたびに生体認証で解除できるようになります。<br>
+            対応端末（Face ID / Touch ID搭載のiPhone・Macなど）でのみ利用できます。ONにした端末ごとの設定です。
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -898,7 +951,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.6.5';
+const APP_VERSION='1.8.0';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -938,6 +991,7 @@ function updateDateHint(){
   if(ndr)ndr.style.display='block';
 }
 let accessToken=null,refreshToken=null,userId=null,userName='';
+let _appLoaded=false;
 
 function H(x={}){return{'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+(accessToken||SK),...x}}
 
@@ -1010,6 +1064,10 @@ document.addEventListener('visibilitychange',async()=>{
   if(!userId)return;
   let away=Date.now()-_lastHidden;
   if(away<60000)return;
+  if(isBioLockOn()&&document.getElementById('app-screen').style.display!=='none'){
+    lockApp();
+    return;
+  }
   await refreshAccessToken();
   load();
 });
@@ -1037,9 +1095,10 @@ async function doLogin(){
     });
     let d=await r.json();
     if(!r.ok)throw new Error(d.error_description||'ログイン失敗');
-    accessToken=d.access_token;userId=d.user.id;
+    accessToken=d.access_token;refreshToken=d.refresh_token;userId=d.user.id;
     userName=d.user.user_metadata?.name||d.user.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.user.id)||email.split('@')[0];
     localStorage.setItem('kb_token',accessToken);
+    localStorage.setItem('kb_refresh',refreshToken);
     localStorage.setItem('kb_uid',userId);
     localStorage.setItem('kb_name_'+userId,userName);
     showApp();
@@ -1065,8 +1124,9 @@ async function doSignup(){
     let d=await r.json();
     if(!r.ok)throw new Error(d.error_description||'登録失敗');
     if(d.access_token){
-      accessToken=d.access_token;userId=d.user.id;userName=name;
+      accessToken=d.access_token;refreshToken=d.refresh_token;userId=d.user.id;userName=name;
       localStorage.setItem('kb_token',accessToken);
+      localStorage.setItem('kb_refresh',refreshToken);
       localStorage.setItem('kb_uid',userId);
       localStorage.setItem('kb_name_'+userId,userName);
       showApp();
@@ -1087,6 +1147,7 @@ async function deleteAccount(){
     await fetchWithRefresh(SU+'/rest/v1/entries?user_id=eq.'+userId,{method:'DELETE',headers:H()});
     // アカウント削除
     await fetch(SU+'/auth/v1/user',{method:'DELETE',headers:H()});
+    localStorage.removeItem('kb_biolock');localStorage.removeItem('kb_webauthn_id');
     showToast('アカウントを削除しました','ok');
     await doLogout();
   }catch(e){ss('err','削除失敗');showToast('アカウント削除に失敗しました。時間をおいて再試行してください','err',5000);}
@@ -1095,25 +1156,31 @@ async function deleteAccount(){
 async function doLogout(){
   if(_tokenRefreshTimer){clearInterval(_tokenRefreshTimer);_tokenRefreshTimer=null;}
   try{await fetch(SU+'/auth/v1/logout',{method:'POST',headers:H()})}catch(e){}
-  accessToken=null;userId=null;userName='';
+  accessToken=null;userId=null;userName='';_appLoaded=false;
   localStorage.removeItem('kb_token');localStorage.removeItem('kb_uid');localStorage.removeItem('kb_refresh');
   document.getElementById('app-screen').style.display='none';
+  document.getElementById('lock-screen').style.display='none';
   document.getElementById('auth-screen').style.display='flex';
 }
 
 async function tryAutoLogin(){
   let token=localStorage.getItem('kb_token');
-  if(!token)return;
+  let refresh=localStorage.getItem('kb_refresh');
+  if(!token&&!refresh)return;
+  if(token)accessToken=token;
+  if(refresh)refreshToken=refresh;
   try{
-    let r=await fetch(SU+'/auth/v1/user',{headers:{'apikey':SK,'Authorization':'Bearer '+token}});
+    let r=await fetchWithRefresh(SU+'/auth/v1/user',{headers:H()});
     if(!r.ok)throw new Error();
     let d=await r.json();
-    accessToken=token;userId=d.id;
-    refreshToken=localStorage.getItem('kb_refresh')||null;
+    userId=d.id;
     userName=d.user_metadata?.name||d.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.id)||d.email.split('@')[0];
     localStorage.setItem('kb_name_'+userId,userName);
-    showApp();
-  }catch(e){localStorage.removeItem('kb_token')}
+    if(isBioLockOn()){lockApp();}else{showApp();}
+  }catch(e){
+    accessToken=null;refreshToken=null;
+    localStorage.removeItem('kb_token');localStorage.removeItem('kb_refresh');
+  }
 }
 
 const SEASON_PHOTOS={
@@ -1176,15 +1243,18 @@ function applySeasonBg(){
 let _tokenRefreshTimer=null;
 async function showApp(){
   document.getElementById('auth-screen').style.display='none';
+  document.getElementById('lock-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-name-display').textContent=userName+'さんの家計簿';
   applySeasonBg();
   if(_tokenRefreshTimer)clearInterval(_tokenRefreshTimer);
   _tokenRefreshTimer=setInterval(refreshAccessToken,25*60*1000);
   initDarkMode();
+  initBioLock();
   await Promise.all([loadFixedItems(),loadStores(),loadUserPrefs(),loadBudgetPref(),loadPatterns()]);
   load();
   checkVersion();
+  _appLoaded=true;
 }
 async function checkVersion(){
   try{
@@ -1270,6 +1340,92 @@ function toggleDarkMode(){
   let dark=document.getElementById('dark-toggle').checked;
   applyDarkMode(dark);
   localStorage.setItem('kb_theme',dark?'dark':'light');
+}
+
+// ===== Face ID / Touch ID ロック =====
+function isBioLockOn(){return localStorage.getItem('kb_biolock')==='1'&&!!localStorage.getItem('kb_webauthn_id')}
+function initBioLock(){
+  let tog=document.getElementById('biolock-toggle');
+  if(tog)tog.checked=isBioLockOn();
+}
+function bufToB64url(buf){
+  let bytes=new Uint8Array(buf),bin='';
+  for(let b of bytes)bin+=String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlToBuf(str){
+  str=str.replace(/-/g,'+').replace(/_/g,'/');
+  while(str.length%4)str+='=';
+  let bin=atob(str),bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return bytes.buffer;
+}
+async function isWebAuthnAvailable(){
+  if(!window.PublicKeyCredential)return false;
+  try{return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();}catch(e){return false;}
+}
+async function registerBiometric(){
+  if(!(await isWebAuthnAvailable())){showToast('この端末ではFace ID / Touch IDが使えません','err');return false;}
+  try{
+    let challenge=crypto.getRandomValues(new Uint8Array(32));
+    let uidBytes=new TextEncoder().encode(userId||'user');
+    let cred=await navigator.credentials.create({publicKey:{
+      challenge,
+      rp:{name:'家計簿',id:location.hostname},
+      user:{id:uidBytes,name:userName||'user',displayName:userName||'user'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+      timeout:60000,
+      attestation:'none'
+    }});
+    if(!cred)return false;
+    localStorage.setItem('kb_webauthn_id',bufToB64url(cred.rawId));
+    return true;
+  }catch(e){showToast('生体認証の登録に失敗しました','err');return false;}
+}
+async function verifyBiometric(){
+  let credId=localStorage.getItem('kb_webauthn_id');
+  if(!credId)return false;
+  try{
+    let challenge=crypto.getRandomValues(new Uint8Array(32));
+    let assertion=await navigator.credentials.get({publicKey:{
+      challenge,
+      allowCredentials:[{id:b64urlToBuf(credId),type:'public-key',transports:['internal']}],
+      userVerification:'required',
+      timeout:60000
+    }});
+    return !!assertion;
+  }catch(e){return false;}
+}
+async function toggleBioLock(){
+  let tog=document.getElementById('biolock-toggle');
+  if(tog.checked){
+    let ok=await registerBiometric();
+    if(ok){localStorage.setItem('kb_biolock','1');showToast('Face ID / Touch IDロックをONにしました','ok');}
+    else{tog.checked=false;}
+  }else{
+    localStorage.removeItem('kb_biolock');
+    showToast('Face ID / Touch IDロックをOFFにしました','info');
+  }
+}
+function lockApp(){
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('lock-screen').style.display='flex';
+  document.getElementById('lock-err').textContent='';
+}
+async function unlockWithBiometric(){
+  document.getElementById('lock-err').textContent='';
+  let ok=await verifyBiometric();
+  if(!ok){document.getElementById('lock-err').textContent='認証に失敗しました。もう一度お試しください';return;}
+  document.getElementById('lock-screen').style.display='none';
+  if(_appLoaded){
+    document.getElementById('app-screen').style.display='block';
+    await refreshAccessToken();
+    load();
+  }else{
+    await showApp();
+  }
 }
 
 // ===== 月間予算 ON/OFF =====
@@ -2203,9 +2359,9 @@ async function changeName(){
   showToast('名前を変更しました','ok');
 }
 
-function showCatDetail(category, type){
-  // annualDataから当月分のみ取得してIDで重複除去
-  let prefix=vy+'-'+String(vm+1).padStart(2,'0')+'-';
+function showCatDetail(category, type, annual){
+  // annual=trueなら年間累計、falseなら当月分のみ。IDで重複除去
+  let prefix=annual?(vy+'-'):(vy+'-'+String(vm+1).padStart(2,'0')+'-');
   let seen=new Set();
   let filtered=annualData.filter(e=>{
     if(e.category!==category||e.type!==type)return false;
@@ -2217,7 +2373,7 @@ function showCatDetail(category, type){
   let total=filtered.reduce((s,e)=>s+e.amount,0);
   let color=type==='inc'?'var(--g)':'var(--r)';
   let sign=type==='inc'?'+':'-';
-  document.getElementById('modal-title').textContent=category+'の明細';
+  document.getElementById('modal-title').textContent=(annual?vy+'年 ':'')+category+'の明細';
   document.getElementById('modal-total').textContent=sign+fy(total);
   document.getElementById('modal-total').style.color=color;
   // 備考別に集計（🔄を除いたキーでまとめる）
@@ -2274,7 +2430,7 @@ function showMonthDetail(m, type){
     let pct=Math.round(amt/total*100);
     let barPct=Math.round(amt/maxAmt*100);
     let catColor=type==='inc'?(INC_COLORS[INC.indexOf(cat)]||'#1D9E75'):(EXP_COLOR_MAP[cat]||'#888');
-    return `<div class="modal-item" onclick="showCatDetail('${cat.replace(/'/g,"\\'")}','${type}')" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:4px">
+    return `<div class="modal-item" onclick="showCatDetail('${cat.replace(/'/g,"\\'")}','${type}',${m===0})" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:4px">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:10px;height:10px;border-radius:3px;background:${catColor};flex-shrink:0"></div>
         <span style="flex:1;font-size:14px;color:#333;font-weight:500">${cat}</span>
@@ -2566,6 +2722,202 @@ function drawPie(canvasId,legendId,type){
   }).join('');
 }
 
+// 年間（選択中の年vy全体）のカテゴリ別累計を描画
+function drawAnnualPie(canvasId,legendId,type){
+  let prefix=vy+'-';
+  let seen=new Set();
+  let filtered=annualData.filter(e=>{
+    if(e.type!==type)return false;
+    if(!e.date.startsWith(prefix))return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  let totals={};
+  filtered.forEach(e=>{totals[e.category]=(totals[e.category]||0)+e.amount});
+  let ents=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  let total=ents.reduce((s,e)=>s+e[1],0);
+  let colors=type==='inc'?INC_COLORS:ents.map(e=>EXP_COLOR_MAP[e[0]]||'#888888');
+  let cx=80,cy=80,r=72,ri=32;
+  let canvas=document.getElementById(canvasId);
+  let totalEl=document.getElementById('cat-total-annual-'+(type==='inc'?'inc':'exp'));
+  if(totalEl)totalEl.textContent=total>0?fy(total):'';
+  let yearEl=document.getElementById('annual-cat-year');
+  if(yearEl)yearEl.textContent=vy+'年';
+  canvas.style.cursor='pointer';
+  canvas.onclick=function(ev){
+    let rect=canvas.getBoundingClientRect();
+    let x=ev.clientX-rect.left-80,y=ev.clientY-rect.top-80;
+    let dist=Math.sqrt(x*x+y*y);
+    if(dist<32){showMonthDetail(0,type);return;}
+    let angle=Math.atan2(y,x)+Math.PI/2;
+    let adj=angle<0?angle+Math.PI*2:angle;
+    let s2=-Math.PI/2,total2=ents.reduce((s,e)=>s+e[1],0);
+    for(let i=0;i<ents.length;i++){
+      let sl=(ents[i][1]/total2)*Math.PI*2;
+      if(adj>=s2&&adj<s2+sl){showCatDetail(ents[i][0],type,true);break;}
+      s2+=sl;
+    }
+  };
+  let ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,160,160);
+  let leg=document.getElementById(legendId);
+  if(!ents.length){
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#e8e8e8';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#f7f7f7';ctx.fill();
+    leg.innerHTML='<div class="no-data">データなし</div>';return;
+  }
+  let start=-Math.PI/2;
+  ents.forEach((e,i)=>{
+    let slice=(e[1]/total)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+slice);ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(start),cy+r*Math.sin(start));
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    start+=slice;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#f7f7f7';ctx.fill();
+  ctx.fillStyle='#888';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='bold 11px -apple-system,sans-serif';ctx.fillText('年間合計',cx,cy-7);
+  ctx.font='bold 13px -apple-system,sans-serif';ctx.fillStyle='#222';ctx.fillText(fy(total),cx,cy+8);
+  let maxAmt=ents[0][1];
+  leg.innerHTML=ents.map((e,i)=>{
+    let pct=Math.round(e[1]/total*100);
+    let barPct=Math.round(e[1]/maxAmt*100);
+    let color=colors[i%colors.length];
+    return `<div class="leg-item" onclick="showCatDetail('${e[0].replace(/'/g,"\\'")}','${type}',true)">
+      <div class="leg-row">
+        <div class="leg-dot" style="background:${color}"></div>
+        <span class="leg-label">${e[0]}</span>
+        <span class="leg-amt">${fy(e[1])}</span>
+        <span class="leg-pct">${pct}%</span>
+      </div>
+      <div class="leg-bar-wrap"><div class="leg-bar" style="width:${barPct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// 年間（選択中の年vy）のお店・備考別の支出累計を描画
+const STORE_COLORS=['#1D9E75','#5B8DEF','#F2A03D','#E8618C','#9B7EDE','#4DC3D4','#D96C4F','#7CB342','#C2185B','#8D6E63','#5C6BC0','#999999'];
+let _storePieEnts=[];
+function storeNoteKey(e){let k=e.note?e.note.replace('🔄','').trim():'';return k||'（備考なし）';}
+
+function drawAnnualStorePie(){
+  let prefix=vy+'-';
+  let seen=new Set();
+  let filtered=annualData.filter(e=>{
+    if(e.type!=='exp')return false;
+    if(!e.date.startsWith(prefix))return false;
+    if(seen.has(e.id))return false;
+    seen.add(e.id);return true;
+  });
+  let totals={};
+  filtered.forEach(e=>{let k=storeNoteKey(e);totals[k]=(totals[k]||0)+e.amount});
+  let sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  // 上位11件＋残りは「その他」にまとめる
+  let ents=sorted.slice(0,11).map(([k,v])=>({label:k,amount:v,keys:[k]}));
+  if(sorted.length>11){
+    let rest=sorted.slice(11);
+    ents.push({label:'その他',amount:rest.reduce((s,e)=>s+e[1],0),keys:rest.map(e=>e[0])});
+  }
+  _storePieEnts=ents;
+  let total=ents.reduce((s,e)=>s+e.amount,0);
+  let totalEl=document.getElementById('store-total-annual');
+  if(totalEl)totalEl.textContent=total>0?fy(total):'';
+  let yearEl=document.getElementById('annual-store-year');
+  if(yearEl)yearEl.textContent=vy+'年';
+  let cx=80,cy=80,r=72,ri=32;
+  let canvas=document.getElementById('pie-annual-store');
+  if(!canvas)return;
+  let ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,160,160);
+  let leg=document.getElementById('legend-annual-store');
+  if(!ents.length){
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#e8e8e8';ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#f7f7f7';ctx.fill();
+    leg.innerHTML='<div class="no-data">データなし</div>';
+    canvas.onclick=null;canvas.style.cursor='default';return;
+  }
+  canvas.style.cursor='pointer';
+  canvas.onclick=function(ev){
+    let rect=canvas.getBoundingClientRect();
+    let x=ev.clientX-rect.left-80,y=ev.clientY-rect.top-80;
+    let dist=Math.sqrt(x*x+y*y);
+    if(dist<32)return;
+    let angle=Math.atan2(y,x)+Math.PI/2;
+    let adj=angle<0?angle+Math.PI*2:angle;
+    let s2=-Math.PI/2;
+    for(let i=0;i<ents.length;i++){
+      let sl=(ents[i].amount/total)*Math.PI*2;
+      if(adj>=s2&&adj<s2+sl){showStoreDetail(i);break;}
+      s2+=sl;
+    }
+  };
+  let start=-Math.PI/2;
+  ents.forEach((e,i)=>{
+    let slice=(e.amount/total)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+slice);ctx.closePath();
+    ctx.fillStyle=STORE_COLORS[i%STORE_COLORS.length];ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(start),cy+r*Math.sin(start));
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    start+=slice;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.fillStyle='#f7f7f7';ctx.fill();
+  ctx.fillStyle='#888';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='bold 11px -apple-system,sans-serif';ctx.fillText('年間合計',cx,cy-7);
+  ctx.font='bold 13px -apple-system,sans-serif';ctx.fillStyle='#222';ctx.fillText(fy(total),cx,cy+8);
+  let maxAmt=ents[0].amount;
+  leg.innerHTML='';
+  ents.forEach((e,i)=>{
+    let pct=Math.round(e.amount/total*100);
+    let barPct=Math.round(e.amount/maxAmt*100);
+    let color=STORE_COLORS[i%STORE_COLORS.length];
+    let item=document.createElement('div');item.className='leg-item';
+    item.innerHTML=`<div class="leg-row">
+        <div class="leg-dot" style="background:${color}"></div>
+        <span class="leg-amt">${fy(e.amount)}</span>
+        <span class="leg-pct">${pct}%</span>
+      </div>
+      <div class="leg-bar-wrap"><div class="leg-bar" style="width:${barPct}%;background:${color}"></div></div>`;
+    let lbl=document.createElement('span');lbl.className='leg-label';lbl.textContent=e.label;
+    let row=item.querySelector('.leg-row');
+    row.insertBefore(lbl,row.querySelector('.leg-amt'));
+    item.onclick=()=>showStoreDetail(i);
+    leg.appendChild(item);
+  });
+}
+
+function showStoreDetail(idx){
+  let e=_storePieEnts[idx];
+  if(!e)return;
+  let prefix=vy+'-';
+  let seen=new Set();
+  let keySet=new Set(e.keys);
+  let filtered=annualData.filter(x=>{
+    if(x.type!=='exp')return false;
+    if(!x.date.startsWith(prefix))return false;
+    if(seen.has(x.id))return false;
+    seen.add(x.id);
+    return keySet.has(storeNoteKey(x));
+  }).sort((a,b)=>a.date<b.date?-1:1);
+  if(!filtered.length)return;
+  let total=filtered.reduce((s,x)=>s+x.amount,0);
+  document.getElementById('modal-title').textContent=vy+'年 '+e.label+'の明細';
+  document.getElementById('modal-total').textContent='-'+fy(total);
+  document.getElementById('modal-total').style.color='var(--r)';
+  let body=document.getElementById('modal-body');
+  body.innerHTML='';
+  filtered.forEach(x=>{
+    let el=document.createElement('div');el.className='modal-item';
+    let noteEl=document.createElement('span');
+    noteEl.style.cssText='flex:1;font-size:14px;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    noteEl.textContent=(e.keys.length>1?storeNoteKey(x)+' ･ ':'')+x.category;
+    el.innerHTML=`<span style="font-size:12px;color:#aaa;min-width:42px">${x.date.slice(5).replace('-','/')}</span><span class="modal-amt" style="color:var(--r)">-${fy(x.amount)}</span>`;
+    el.insertBefore(noteEl,el.querySelector('.modal-amt'));
+    body.appendChild(el);
+  });
+  document.getElementById('cat-modal').classList.add('show');
+}
+
 function renderAnnual(){
   document.getElementById('annual-year').textContent=vy+'年';
   let tbody=document.getElementById('annual-body');
@@ -2684,6 +3036,9 @@ function render(){
   drawPie('pie-inc','legend-inc','inc');
   drawPie('pie-exp','legend-exp','exp');
   renderAnnual();
+  drawAnnualPie('pie-annual-inc','legend-annual-inc','inc');
+  drawAnnualPie('pie-annual-exp','legend-annual-exp','exp');
+  drawAnnualStorePie();
   renderBudgetBars();
   renderBudgetBanner();
   renderBarChart();
