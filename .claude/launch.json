@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "中間テスト対策",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "/Users/nakatsurumakoto/Documents/中間テスト対策", "-p", "7070", "-c-1"],
+      "port": 7070
+    },
+    {
+      "name": "期末テスト対策",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "/Users/nakatsurumakoto/Documents/期末テスト対策", "-p", "7071", "-c-1"],
+      "port": 7071
+    },
+    {
+      "name": "kakeibo",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "/Users/nakatsurumakoto/Documents/家計簿アプリ", "-p", "7073", "-c-1"],
+      "port": 7073
+    },
+    {
+      "name": "uriage",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "/Users/nakatsurumakoto/Documents/uriage", "-p", "7072", "-c-1"],
+      "port": 7072
+    }
+  ]
+}

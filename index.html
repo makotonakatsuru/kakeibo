@@ -951,7 +951,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.8.0';
+const APP_VERSION='1.8.1';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -3136,6 +3136,16 @@ function deleteStore(i){
   renderStoreList();
 }
 let storePickerTarget=null;
+// 使用回数（今年の記録の備考欄）が多い順。未使用は登録順のまま後ろ
+function storeUsageOrder(stores){
+  let counts={};
+  (annualData||[]).forEach(e=>{
+    let n=(e.note||'').trim();
+    if(n)counts[n]=(counts[n]||0)+1;
+  });
+  return stores.map((s,i)=>({s:s,i:i,c:counts[String(s).trim()]||0}))
+    .sort((a,b)=>b.c-a.c||a.i-b.i);
+}
 function openStorePicker(targetId){
   storePickerTarget=targetId;
   let stores=getStores();
@@ -3143,8 +3153,8 @@ function openStorePicker(targetId){
   if(!stores.length){
     list.innerHTML='<div class="store-picker-empty">登録されているお店がありません<br><span style="font-size:12px;color:#bbb">設定→🏪よく使うお店から追加できます</span></div>';
   }else{
-    list.innerHTML=stores.map((s,i)=>`
-      <div class="store-picker-item" onclick="selectStoreIdx(${i})">🏪 ${escST(s)}</div>`).join('');
+    list.innerHTML=storeUsageOrder(stores).map(e=>`
+      <div class="store-picker-item" onclick="selectStoreIdx(${e.i})">🏪 ${escST(e.s)}</div>`).join('');
   }
   document.getElementById('store-picker-overlay').classList.add('show');
 }
