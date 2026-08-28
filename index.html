@@ -951,7 +951,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.8.2';
+const APP_VERSION='1.8.3';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -2359,9 +2359,10 @@ async function changeName(){
   showToast('名前を変更しました','ok');
 }
 
-function showCatDetail(category, type, annual){
-  // annual=trueなら年間累計、falseなら当月分のみ。IDで重複除去
-  let prefix=annual?(vy+'-'):(vy+'-'+String(vm+1).padStart(2,'0')+'-');
+function showCatDetail(category, type, annual, month){
+  // annual=trueなら年間累計。month(1〜12)指定があればその月、なければ表示中の月。IDで重複除去
+  let m=month||vm+1;
+  let prefix=annual?(vy+'-'):(vy+'-'+String(m).padStart(2,'0')+'-');
   let seen=new Set();
   let filtered=annualData.filter(e=>{
     if(e.category!==category||e.type!==type)return false;
@@ -2373,7 +2374,7 @@ function showCatDetail(category, type, annual){
   let total=filtered.reduce((s,e)=>s+e.amount,0);
   let color=type==='inc'?'var(--g)':'var(--r)';
   let sign=type==='inc'?'+':'-';
-  document.getElementById('modal-title').textContent=(annual?vy+'年 ':'')+category+'の明細';
+  document.getElementById('modal-title').textContent=(annual?vy+'年 ':(month?month+'月 ':''))+category+'の明細';
   document.getElementById('modal-total').textContent=sign+fy(total);
   document.getElementById('modal-total').style.color=color;
   // 備考別に集計（🔄を除いたキーでまとめる）
@@ -2430,7 +2431,7 @@ function showMonthDetail(m, type){
     let pct=Math.round(amt/total*100);
     let barPct=Math.round(amt/maxAmt*100);
     let catColor=type==='inc'?(INC_COLORS[INC.indexOf(cat)]||'#1D9E75'):(EXP_COLOR_MAP[cat]||'#888');
-    return `<div class="modal-item" onclick="showCatDetail('${cat.replace(/'/g,"\\'")}','${type}',${m===0})" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:4px">
+    return `<div class="modal-item" onclick="showCatDetail('${cat.replace(/'/g,"\\'")}','${type}',${m===0},${m})" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:4px">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:10px;height:10px;border-radius:3px;background:${catColor};flex-shrink:0"></div>
         <span style="flex:1;font-size:14px;color:#333;font-weight:500">${cat}</span>
