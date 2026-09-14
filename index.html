@@ -951,7 +951,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.8.3';
+const APP_VERSION='1.8.4';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -2529,16 +2529,53 @@ function setType(t){
   document.getElementById('cs').innerHTML=(t==='inc'?INC:EXP).map(c=>'<option>'+c+'</option>').join('');
 }
 
-// 祝日リスト（簡易版・日本の主な祝日）
-const HOLIDAYS={
-  '01-01':'元日','01-13':'成人の日','02-11':'建国記念の日','02-23':'天皇誕生日',
-  '03-20':'春分の日','04-29':'昭和の日','05-03':'憲法記念日','05-04':'みどりの日','05-05':'こどもの日',
-  '07-21':'海の日','08-11':'山の日','09-15':'敬老の日','09-23':'秋分の日',
-  '10-13':'スポーツの日','11-03':'文化の日','11-23':'勤労感謝の日'
-};
+// ---- 日本の祝日（年ごとに計算：ハッピーマンデー・春分秋分・振替休日・国民の休日対応）----
+function getJpHolidays(y){
+  const h={};
+  const hkey=(m,d)=>String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  function add(m,d,name){h[hkey(m,d)]=name;}
+  // 固定祝日
+  add(1,1,'元日'); add(2,11,'建国記念の日'); add(2,23,'天皇誕生日');
+  add(4,29,'昭和の日'); add(5,3,'憲法記念日'); add(5,4,'みどりの日'); add(5,5,'こどもの日');
+  add(8,11,'山の日'); add(11,3,'文化の日'); add(11,23,'勤労感謝の日');
+  // 春分の日・秋分の日（概算式）
+  add(3, Math.floor(20.8431+0.242194*(y-1980)-Math.floor((y-1980)/4)), '春分の日');
+  add(9, Math.floor(23.2488+0.242194*(y-1980)-Math.floor((y-1980)/4)), '秋分の日');
+  // ハッピーマンデー（第n月曜）
+  function nthMon(m,n){
+    const first=new Date(y,m-1,1).getDay();
+    return 1+(n-1)*7+(first<=1?1-first:8-first);
+  }
+  add(1,nthMon(1,2),'成人の日');
+  add(7,nthMon(7,3),'海の日');
+  add(9,nthMon(9,3),'敬老の日');
+  add(10,nthMon(10,2),'スポーツの日');
+  // 国民の休日（前日も翌日も祝日の日）
+  const base=Object.keys(h).sort();
+  const extra={};
+  for(let i=0;i<base.length-1;i++){
+    const a=new Date(y+'-'+base[i]+'T00:00:00'), b=new Date(y+'-'+base[i+1]+'T00:00:00');
+    if((b-a)/86400000===2){
+      const mid=new Date(a); mid.setDate(mid.getDate()+1);
+      const mk=hkey(mid.getMonth()+1,mid.getDate());
+      if(!h[mk]&&mid.getDay()!==0) extra[mk]='国民の休日';
+    }
+  }
+  // 振替休日（日曜の祝日→その後の最初の「祝日でない日」）
+  base.forEach(k=>{
+    const dt=new Date(y+'-'+k+'T00:00:00');
+    if(dt.getDay()!==0)return;
+    const next=new Date(dt);
+    do{ next.setDate(next.getDate()+1); }while(h[hkey(next.getMonth()+1,next.getDate())]);
+    const nk=hkey(next.getMonth()+1,next.getDate());
+    if(!extra[nk]) extra[nk]='振替休日';
+  });
+  return {...h,...extra};
+}
+let _holCache={};
 function getHolidayName(y,m,d){
-  let key=String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-  return HOLIDAYS[key]||null;
+  if(!_holCache[y]) _holCache[y]=getJpHolidays(y);
+  return _holCache[y][String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')]||null;
 }
 function isHoliday(y,m,d){return !!getHolidayName(y,m,d);}
 function getDayColor(y,m,d){
