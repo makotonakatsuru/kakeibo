@@ -955,7 +955,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.8.5';
+const APP_VERSION='1.8.6';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -3178,14 +3178,15 @@ function deleteStore(i){
   renderStoreList();
 }
 let storePickerTarget=null;
-// 使用回数（今年の記録の備考欄）を収入/支出の種別ごとに集計し、多い順に並べる。
-// 反対の種別でしか使っていないお店は表示しない。未使用のお店は登録順のまま後ろ（どちらにも表示）
-function storeUsageOrder(stores,type){
+// 使用回数（今年の記録の備考欄）を「選択中のカテゴリ」ごとに集計し、多い順に並べる。
+// 例：食費なら食費の記録で使ったお店だけ。他のカテゴリでしか使っていないお店は表示しない。
+// どのカテゴリでも未使用のお店は登録順のまま後ろ（どのカテゴリにも表示）
+function storeUsageOrder(stores,type,cat){
   let counts={},otherCounts={};
   (annualData||[]).forEach(e=>{
     let n=(e.note||'').trim();
     if(!n)return;
-    if(e.type===type)counts[n]=(counts[n]||0)+1;
+    if(e.type===type&&e.category===cat)counts[n]=(counts[n]||0)+1;
     else otherCounts[n]=(otherCounts[n]||0)+1;
   });
   return stores.map((s,i)=>{
@@ -3197,15 +3198,17 @@ function storeUsageOrder(stores,type){
 function openStorePicker(targetId){
   storePickerTarget=targetId;
   let type=targetId==='note2'?ct2:ct;
+  let catSel=document.getElementById(targetId==='note2'?'cs2':'cs');
+  let cat=catSel?catSel.value:'';
   let title=document.getElementById('store-picker-title');
-  if(title)title.textContent=type==='inc'?'🏪 お店を選択（収入）':'🏪 お店を選択（支出）';
+  if(title)title.textContent='🏪 お店を選択（'+(cat||(type==='inc'?'収入':'支出'))+'）';
   let stores=getStores();
   let list=document.getElementById('store-picker-list');
-  let entries=storeUsageOrder(stores,type);
+  let entries=storeUsageOrder(stores,type,cat);
   if(!stores.length){
     list.innerHTML='<div class="store-picker-empty">登録されているお店がありません<br><span style="font-size:12px;color:#bbb">設定→🏪よく使うお店から追加できます</span></div>';
   }else if(!entries.length){
-    list.innerHTML='<div class="store-picker-empty">'+(type==='inc'?'収入':'支出')+'で使ったお店がまだありません<br><span style="font-size:12px;color:#bbb">備考欄に入力して保存すると次から表示されます</span></div>';
+    list.innerHTML='<div class="store-picker-empty">「'+escST(cat)+'」で使ったお店がまだありません<br><span style="font-size:12px;color:#bbb">備考欄に入力して保存すると次から表示されます</span></div>';
   }else{
     list.innerHTML=entries.map(e=>`
       <div class="store-picker-item" onclick="selectStoreIdx(${e.i})">🏪 ${escST(e.s)}</div>`).join('');
