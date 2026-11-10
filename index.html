@@ -316,20 +316,11 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
   <div class="auth-logo">💰 家計簿</div>
   <div class="auth-sub">あなただけの家計管理</div>
   <div class="auth-box">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">ログイン</button>
-      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">新規登録</button>
-    </div>
     <div id="login-form">
       <div class="auth-field"><label>メールアドレス</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
       <div class="auth-field"><label>パスワード</label><input type="password" id="login-pass" placeholder="パスワード"></div>
       <button class="auth-btn" id="login-btn" onclick="doLogin()">ログイン</button>
-    </div>
-    <div id="signup-form" style="display:none">
-      <div class="auth-field"><label>お名前</label><input type="text" id="signup-name" placeholder="例：田中 太郎"></div>
-      <div class="auth-field"><label>メールアドレス</label><input type="email" id="signup-email" placeholder="example@mail.com"></div>
-      <div class="auth-field"><label>パスワード（6文字以上）</label><input type="password" id="signup-pass" placeholder="パスワード"></div>
-      <button class="auth-btn" id="signup-btn" onclick="doSignup()">登録する</button>
+      <div style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;line-height:1.6">新しく使う人の登録は受け付けていません<br>（家族専用）</div>
     </div>
     <div class="auth-err" id="auth-err"></div>
     <div class="auth-msg" id="auth-msg"></div>
@@ -984,7 +975,7 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
 </div>
 
 <script>
-const APP_VERSION='1.9.0';
+const APP_VERSION='1.9.1';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -1105,14 +1096,6 @@ document.addEventListener('visibilitychange',async()=>{
   load();
 });
 
-function switchTab(tab){
-  document.getElementById('tab-login').className='auth-tab'+(tab==='login'?' active':'');
-  document.getElementById('tab-signup').className='auth-tab'+(tab==='signup'?' active':'');
-  document.getElementById('login-form').style.display=tab==='login'?'block':'none';
-  document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';
-  document.getElementById('auth-err').textContent='';
-  document.getElementById('auth-msg').textContent='';
-}
 
 async function doLogin(){
   let email=document.getElementById('login-email').value.trim();
@@ -1139,37 +1122,6 @@ async function doLogin(){
   btn.disabled=false;btn.textContent='ログイン';
 }
 
-async function doSignup(){
-  let name=document.getElementById('signup-name').value.trim();
-  let email=document.getElementById('signup-email').value.trim();
-  let pass=document.getElementById('signup-pass').value;
-  if(!name){document.getElementById('auth-err').textContent='お名前を入力してください';return}
-  if(!email||!pass){document.getElementById('auth-err').textContent='メールとパスワードを入力してください';return}
-  if(pass.length<6){document.getElementById('auth-err').textContent='パスワードは6文字以上にしてください';return}
-  let btn=document.getElementById('signup-btn');
-  btn.disabled=true;btn.textContent='登録中...';
-  document.getElementById('auth-err').textContent='';
-  try{
-    let r=await fetch(SU+'/auth/v1/signup',{
-      method:'POST',headers:{'Content-Type':'application/json','apikey':SK},
-      body:JSON.stringify({email,password:pass,data:{name}})
-    });
-    let d=await r.json();
-    if(!r.ok)throw new Error(d.error_description||'登録失敗');
-    if(d.access_token){
-      accessToken=d.access_token;refreshToken=d.refresh_token;userId=d.user.id;userName=name;
-      localStorage.setItem('kb_token',accessToken);
-      localStorage.setItem('kb_refresh',refreshToken);
-      localStorage.setItem('kb_uid',userId);
-      localStorage.setItem('kb_name_'+userId,userName);
-      showApp();
-    }else{
-      document.getElementById('auth-msg').textContent='登録しました！ログインしてください。';
-      switchTab('login');
-    }
-  }catch(e){document.getElementById('auth-err').textContent=e.message}
-  btn.disabled=false;btn.textContent='登録する';
-}
 
 async function deleteAccount(){
   if(!confirm('アカウントを削除しますか？\nすべてのデータが失われます。'))return;
