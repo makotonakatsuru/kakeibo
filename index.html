@@ -899,6 +899,24 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
     </div>
   </div>
 </div>
+<!-- Face IDロックのおすすめ -->
+<div class="modal-overlay" id="bio-suggest-modal">
+  <div class="modal">
+    <div class="modal-body" style="padding:22px 20px 18px;text-align:center">
+      <div style="font-size:44px;line-height:1;margin-bottom:10px">🔒</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:10px">Face IDロックを使いましょう</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;text-align:left;margin-bottom:12px">
+        スマホをなくしたり、人に貸したりした時に、家計簿を見られないようにする設定です。<br>
+        設定すると、次からは<b>アプリを開いてFace IDボタンを押すだけ</b>で入れます（パスワードの入力は不要）。
+      </div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.7;text-align:left;background:var(--bg2);border-radius:10px;padding:10px 12px;margin-bottom:16px">
+        💡 パスワードは<b>他のサイトと同じものを使わない</b>でください。変更は ⚙️ →「パスワード変更」からできます。
+      </div>
+      <button class="auth-btn" id="bio-suggest-ok" onclick="acceptBioSuggest()">🔓 今すぐ設定する</button>
+      <button onclick="snoozeBioSuggest()" style="margin-top:10px;width:100%;padding:10px;background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;font-family:inherit">あとで</button>
+    </div>
+  </div>
+</div>
 <!-- 検索モーダル -->
 <div class="modal-overlay" id="search-modal" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal">
@@ -975,7 +993,7 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
 </div>
 
 <script>
-const APP_VERSION='1.9.1';
+const APP_VERSION='1.9.2';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -1034,7 +1052,7 @@ async function refreshAccessToken(){
     if(d.refresh_token){refreshToken=d.refresh_token;localStorage.setItem('kb_refresh',d.refresh_token);}
     localStorage.setItem('kb_token',accessToken);
     return true;
-  }catch(e){return false;}
+  }catch(e){return null;} // null=通信できなかった（ログインが無効になったわけではない）
 }
 
 async function fetchWithRefresh(url,options){
@@ -1048,6 +1066,7 @@ async function fetchWithRefresh(url,options){
   }
   if(r.status===401||r.status===403){
     let ok=await refreshAccessToken();
+    if(ok===null)throw Object.assign(new Error('通信エラーが発生しました。接続を確認して再試行してください。'),{offline:true});
     if(ok){
       options.headers={...options.headers,...H()};
       r=await fetch(url,options);
@@ -1154,18 +1173,29 @@ async function tryAutoLogin(){
   if(!token&&!refresh)return;
   if(token)accessToken=token;
   if(refresh)refreshToken=refresh;
-  try{
-    let r=await fetchWithRefresh(SU+'/auth/v1/user',{headers:H()});
-    if(!r.ok)throw new Error();
-    let d=await r.json();
-    userId=d.id;
-    userName=d.user_metadata?.name||d.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.id)||d.email.split('@')[0];
-    localStorage.setItem('kb_name_'+userId,userName);
+  let r=null;
+  try{r=await fetchWithRefresh(SU+'/auth/v1/user',{headers:H()});}catch(e){r=null;}
+  // 通信できない・サーバー不調のときは、ログインを外さずに前回の情報で開く
+  if(!r||r.status>=500||r.status===408||r.status===429){
+    let uid=localStorage.getItem('kb_uid');
+    if(!uid)return;
+    userId=uid;
+    userName=localStorage.getItem('kb_name_'+uid)||'';
     if(isBioLockOn()){lockApp();}else{showApp();}
-  }catch(e){
+    return;
+  }
+  if(!r.ok){
+    // ログインが本当に無効（期限切れ・取り消し）のときだけパスワード入力に戻す
     accessToken=null;refreshToken=null;
     localStorage.removeItem('kb_token');localStorage.removeItem('kb_refresh');
+    return;
   }
+  let d=await r.json();
+  userId=d.id;
+  userName=d.user_metadata?.name||d.user_metadata?.full_name||localStorage.getItem('kb_name_'+d.id)||d.email.split('@')[0];
+  localStorage.setItem('kb_uid',userId);
+  localStorage.setItem('kb_name_'+userId,userName);
+  if(isBioLockOn()){lockApp();}else{showApp();}
 }
 
 const SEASON_PHOTOS={
@@ -1240,6 +1270,7 @@ async function showApp(){
   load();
   checkVersion();
   _appLoaded=true;
+  setTimeout(maybeSuggestBioLock,1500);
 }
 async function checkVersion(){
   try{
@@ -1401,6 +1432,35 @@ async function toggleBioLock(){
     localStorage.removeItem('kb_biolock');
     showToast('Face ID / Touch IDロックをOFFにしました','info');
   }
+}
+// Face IDロック未設定の人に、ログイン後に一度おすすめする（「あとで」は3日後にもう一度だけ）
+async function maybeSuggestBioLock(){
+  if(isBioLockOn())return;
+  let cnt=+(localStorage.getItem('kb_bio_nag')||0);
+  let until=+(localStorage.getItem('kb_bio_nag_until')||0);
+  if(cnt>=2||Date.now()<until)return;
+  if(!(await isWebAuthnAvailable()))return;
+  if(document.getElementById('app-screen').style.display==='none')return;
+  document.getElementById('bio-suggest-modal').classList.add('show');
+}
+async function acceptBioSuggest(){
+  let btn=document.getElementById('bio-suggest-ok');
+  btn.disabled=true;
+  let ok=await registerBiometric();
+  btn.disabled=false;
+  if(ok){
+    localStorage.setItem('kb_biolock','1');
+    initBioLock();
+    document.getElementById('bio-suggest-modal').classList.remove('show');
+    showToast('Face IDロックをONにしました。次からはFace IDで開けます','ok',4000);
+  }
+}
+function snoozeBioSuggest(){
+  let cnt=+(localStorage.getItem('kb_bio_nag')||0)+1;
+  localStorage.setItem('kb_bio_nag',cnt);
+  localStorage.setItem('kb_bio_nag_until',Date.now()+3*24*60*60*1000);
+  document.getElementById('bio-suggest-modal').classList.remove('show');
+  showToast(cnt>=2?'あとからでも ⚙️ →「Face ID / Touch IDでロック」で設定できます':'3日後にもう一度お知らせします','info',4000);
 }
 function lockApp(){
   document.getElementById('app-screen').style.display='none';
