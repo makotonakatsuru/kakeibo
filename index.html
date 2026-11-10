@@ -957,7 +957,7 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
 </div>
 
 <script>
-const APP_VERSION='1.8.8';
+const APP_VERSION='1.8.9';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -1342,6 +1342,14 @@ function applyDarkMode(dark){
   let tog=document.getElementById('dark-toggle');
   if(tog)tog.checked=dark;
 }
+// iPhone（端末）のダーク/通常の切り替えにすぐ追従する（アプリ内で色を選んでいない場合のみ）
+(function(){
+  let mq=window.matchMedia('(prefers-color-scheme: dark)');
+  let follow=()=>{if(localStorage.getItem('kb_theme')===null)applyDarkMode(mq.matches);};
+  if(mq.addEventListener)mq.addEventListener('change',follow);else if(mq.addListener)mq.addListener(follow);
+  // ホーム画面アプリを再表示したときにも確認（裏で切り替わっていた場合）
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)follow();});
+})();
 function toggleDarkMode(){
   let dark=document.getElementById('dark-toggle').checked;
   applyDarkMode(dark);
