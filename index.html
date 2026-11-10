@@ -28,6 +28,11 @@ html,body{overflow-x:hidden;max-width:100vw}
   --border:#e0e0e0;--bg:#fff;--bg2:#f7f7f7;
 }
 .wrap{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-top:165px}
+.bio-hint{margin-top:18px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);text-align:left}
+.bio-hint-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.bio-hint ol{padding-left:20px;font-size:13px;color:var(--text2);line-height:1.8}
+.bio-hint-note{font-size:12px;color:var(--text);background:var(--bg);border-radius:8px;padding:6px 8px;margin-bottom:6px;line-height:1.6}
+.bio-hint-sub{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6}
 #auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;background:#fff}
 .auth-logo{font-size:32px;font-weight:700;color:var(--g);margin-bottom:6px}
 .auth-sub{font-size:13px;color:#aaa;margin-bottom:36px}
@@ -321,6 +326,16 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
       <div class="auth-field"><label>パスワード</label><input type="password" id="login-pass" placeholder="パスワード"></div>
       <button class="auth-btn" id="login-btn" onclick="doLogin()">ログイン</button>
       <div style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;line-height:1.6">このアプリは招待制です<br>使いたい方は中津留までご連絡ください</div>
+    </div>
+    <div class="bio-hint">
+      <div class="bio-hint-title">🔒 Face IDでかんたんに開けます</div>
+      <div id="bio-hint-registered" class="bio-hint-note" style="display:none">この端末はFace IDを設定済みです。パスワードでログインすると、次からまたFace IDだけで開けます。</div>
+      <ol>
+        <li>最初の1回だけ、メールとパスワードでログイン</li>
+        <li>右上の ⚙️ →「Face ID / Touch IDでロック」をオン</li>
+        <li>次からは、アプリを開いて<b>「Face IDで解除」を押すだけ</b></li>
+      </ol>
+      <div class="bio-hint-sub">※ ログアウトすると、もう一度パスワードが必要になります。ログアウトせずにお使いください。</div>
     </div>
     <div class="auth-err" id="auth-err"></div>
     <div class="auth-msg" id="auth-msg"></div>
@@ -704,10 +719,17 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px">🔒 Face ID / Touch IDロック</div>
-          <div style="font-size:13px;color:var(--text5);line-height:1.8">
-            設定→🔒Face ID / Touch IDでロックをONにすると、次回以降アプリを開くたびに生体認証で解除できるようになります。<br>
-            対応端末（Face ID / Touch ID搭載のiPhone・Macなど）でのみ利用できます。ONにした端末ごとの設定です。
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;color:var(--text)">🔒 Face ID / Touch IDロック（おすすめ）</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.8">
+            スマホをなくしても中身を見られないようにする設定です。設定すると、<b>次からはFace IDボタンだけで開けます</b>（パスワード不要）。<br>
+            <b>設定のしかた</b><br>
+            ① 右上の ⚙️ をタップ<br>
+            ② 「Face ID / Touch IDでロック」のスイッチをオン<br>
+            ③ Face IDの確認が出たら、顔（または指）で認証して完了<br>
+            <b>ポイント</b><br>
+            ・ログアウトしなければ、毎回Face IDだけで入れます<br>
+            ・1分以上ほかのアプリを使って戻った時も、Face IDで解除します<br>
+            ・スマホを替えた時は、新しいスマホで一度パスワードでログインして、もう一度オンにしてください
           </div>
         </div>
         <div style="background:#f0faf5;border-radius:12px;padding:12px">
@@ -993,7 +1015,10 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
 </div>
 
 <script>
-const APP_VERSION='1.9.3';
+// ログイン画面：この端末でFace IDを設定したことがあれば一言表示
+document.addEventListener('DOMContentLoaded',()=>{let el=document.getElementById('bio-hint-registered');if(el&&localStorage.getItem('kb_webauthn_id'))el.style.display='block';});
+
+const APP_VERSION='1.9.4';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
