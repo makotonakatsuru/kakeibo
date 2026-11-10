@@ -955,7 +955,7 @@ html[data-theme="dark"] [style*="background:#f0faf5"]{background:var(--gl)!impor
 </div>
 
 <script>
-const APP_VERSION='1.8.6';
+const APP_VERSION='1.8.7';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -2381,6 +2381,32 @@ function showCatDetail(category, type, annual, month){
   document.getElementById('modal-title').textContent=(annual?vy+'年 ':(month?month+'月 ':''))+category+'の明細';
   document.getElementById('modal-total').textContent=sign+fy(total);
   document.getElementById('modal-total').style.color=color;
+  // 月の明細：1件ずつ日付つきで表示（タップで編集）
+  if(!annual){
+    filtered.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    let body=document.getElementById('modal-body');
+    body.innerHTML='';
+    filtered.forEach(x=>{
+      let el=document.createElement('div');el.className='modal-item';el.style.cursor='pointer';
+      let [,mm,dd]=x.date.split('-');
+      let dow='日月火水木金土'[new Date(+x.date.slice(0,4),+mm-1,+dd).getDay()];
+      let dateEl=document.createElement('span');
+      dateEl.style.cssText='font-size:12px;color:#888;min-width:56px;white-space:nowrap';
+      dateEl.textContent=(+mm)+'/'+(+dd)+'('+dow+')';
+      let noteEl=document.createElement('span');
+      noteEl.style.cssText='flex:1;font-size:14px;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      noteEl.className='modal-note';
+      noteEl.textContent=x.note?x.note.replace('🔄','').trim()||'（備考なし）':'（備考なし）';
+      let amtEl=document.createElement('span');
+      amtEl.className='modal-amt';amtEl.style.color=color;
+      amtEl.textContent=sign+fy(x.amount);
+      el.append(dateEl,noteEl,amtEl);
+      el.onclick=()=>{document.getElementById('cat-modal').classList.remove('show');openEditModal(x.id);};
+      body.appendChild(el);
+    });
+    document.getElementById('cat-modal').classList.add('show');
+    return;
+  }
   // 備考別に集計（🔄を除いたキーでまとめる）
   let noteMap={};
   let noNote=0;
@@ -2462,7 +2488,7 @@ function setEditType(t){
 }
 
 function openEditModal(id){
-  let e=data.find(e=>e.id===id);
+  let e=data.find(e=>e.id===id)||annualData.find(e=>e.id===id);
   if(!e)return;
   editingId=id;
   setEditType(e.type);
