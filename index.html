@@ -322,8 +322,8 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
   <div class="auth-sub">あなただけの家計管理</div>
   <div class="auth-box">
     <div id="login-form">
-      <div class="auth-field"><label>メールアドレス</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
-      <div class="auth-field"><label>パスワード</label><input type="password" id="login-pass" placeholder="パスワード"></div>
+      <div class="auth-field"><label>メールアドレス</label><input type="email" id="login-email" placeholder="example@mail.com" autocomplete="username"></div>
+      <div class="auth-field"><label>パスワード</label><input type="password" id="login-pass" placeholder="パスワード" autocomplete="current-password"></div>
       <button class="auth-btn" id="login-btn" onclick="doLogin()">ログイン</button>
       <div style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;line-height:1.6">このアプリは招待制です<br>使いたい方は中津留までご連絡ください</div>
     </div>
@@ -1018,7 +1018,7 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
 // ログイン画面：この端末でFace IDを設定したことがあれば一言表示
 document.addEventListener('DOMContentLoaded',()=>{let el=document.getElementById('bio-hint-registered');if(el&&localStorage.getItem('kb_webauthn_id'))el.style.display='block';});
 
-const APP_VERSION='1.9.4';
+const APP_VERSION='1.9.5';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
