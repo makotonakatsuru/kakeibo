@@ -349,7 +349,7 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
   <div style="font-size:13px;color:#888;margin-bottom:32px">Face ID / Touch IDで解除してください</div>
   <button class="auth-btn" style="max-width:280px" onclick="unlockWithBiometric()">🔓 Face ID / Touch IDで解除</button>
   <div id="lock-err" style="font-size:13px;color:var(--r);text-align:center;margin-top:14px;min-height:20px"></div>
-  <div style="margin-top:24px;font-size:12px;color:#aaa;cursor:pointer;text-decoration:underline" onclick="doLogout()">ログアウトしてやり直す</div>
+  <div style="margin-top:24px;font-size:12px;color:#aaa;cursor:pointer;text-decoration:underline" onclick="resetBioAndLogout()">ログアウトしてやり直す</div>
 </div>
 
 <!-- アプリ画面 -->
@@ -1018,7 +1018,7 @@ html[data-theme="dark"] [style*="background:#fff3cd"]{background:#2b2600!importa
 // ログイン画面：この端末でFace IDを設定したことがあれば一言表示
 document.addEventListener('DOMContentLoaded',()=>{let el=document.getElementById('bio-hint-registered');if(el&&localStorage.getItem('kb_webauthn_id'))el.style.display='block';});
 
-const APP_VERSION='1.9.6';
+const APP_VERSION='1.9.7';
 const VERSION_URL='https://makotonakatsuru.github.io/kakeibo/version.json';
 const SU='https://rpalacpkyloamikjmtri.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJwYWxhY3BreWxvYW1pa2ptdHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzE0MTAsImV4cCI6MjA5MjU0NzQxMH0.3rkBfZyR45vZIzUbUii2hjwQMKSulICzIzFOzSOKZjc';
@@ -1493,10 +1493,16 @@ function lockApp(){
   document.getElementById('lock-screen').style.display='flex';
   document.getElementById('lock-err').textContent='';
 }
+// ロック画面から「やり直す」＝この端末のFace IDロック設定を消してからログアウト（鍵が消えていても抜け出せるように）
+async function resetBioAndLogout(){
+  ['kb_biolock','kb_webauthn_id','kb_bio_nag','kb_bio_nag_until'].forEach(k=>localStorage.removeItem(k));
+  let el=document.getElementById('bio-hint-registered');if(el)el.style.display='none';
+  await doLogout();
+}
 async function unlockWithBiometric(){
   document.getElementById('lock-err').textContent='';
   let ok=await verifyBiometric();
-  if(!ok){document.getElementById('lock-err').textContent='認証に失敗しました。もう一度お試しください。何度やってもだめな時は、下の「ログアウトしてやり直す」からパスワードでログインし、設定でFace IDロックを入れ直してください';return;}
+  if(!ok){document.getElementById('lock-err').textContent='認証に失敗しました。もう一度お試しください。何度やってもだめな時は、下の「ログアウトしてやり直す」を押してパスワードでログインし、Face IDロックを設定し直してください';return;}
   document.getElementById('lock-screen').style.display='none';
   if(_appLoaded){
     document.getElementById('app-screen').style.display='block';
